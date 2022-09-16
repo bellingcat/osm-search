@@ -1,28 +1,48 @@
 <template>
   <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png" />
-    <HelloWorld msg="Welcome to Your Vue.js App" />
+    <button @click="search">Search</button>
+    <div class="results">
+      <SearchResult
+        v-for="(result, i) in results"
+        :key="'result' + i"
+        :result="result"
+        :resultIndex="i"
+        :mode="mode"
+      />
+    </div>
   </div>
 </template>
 
 <script>
-import HelloWorld from "./components/HelloWorld.vue";
+import SearchResult from "./components/SearchResult.vue";
 
 export default {
   name: "App",
   components: {
-    HelloWorld,
+    SearchResult,
+  },
+  data() {
+    return {
+      results: [],
+      mode: "google",
+    };
+  },
+  methods: {
+    search() {
+      fetch(
+        "http://127.0.0.1:5000/intersection?l=-71.9989&b=41&r=-69.5&t=43&buffer=50&point_filter=WHERE (amenity = 'retaurant' OR amenity = 'cafe' OR amenity = 'pub' OR amenity = 'fast_food')&line_filter=WHERE (railway IS NOT null AND bridge IS NOT null)"
+      )
+        .then((d) => d.json())
+        .then((data) => {
+          this.results = data;
+        });
+    },
   },
 };
 </script>
 
 <style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+body {
+  font-family: Helvetica, Arial, sans-serif;
 }
 </style>

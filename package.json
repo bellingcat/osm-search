@@ -9,7 +9,9 @@
   },
   "dependencies": {
     "core-js": "^3.8.3",
-    "vue": "^2.6.14"
+    "leaflet": "^1.8.0",
+    "vue": "^2.6.14",
+    "vue2-leaflet": "^2.7.1"
   },
   "devDependencies": {
     "@babel/core": "^7.12.16",
