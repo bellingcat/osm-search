@@ -1,5 +1,5 @@
 {
-  "name": "osm-vue",
+  "name": "osm-search",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,9 +9,15 @@
   },
   "dependencies": {
     "core-js": "^3.8.3",
+    "export-to-csv": "^0.2.1",
+    "file-saver": "^2.0.5",
     "leaflet": "^1.8.0",
+    "tokml": "^0.4.0",
     "vue": "^2.6.14",
-    "vue2-leaflet": "^2.7.1"
+    "vue2-leaflet": "^2.7.1",
+    "vuedraggable": "^2.24.3",
+    "vuetify": "^2.6.0",
+    "vuex": "3"
   },
   "devDependencies": {
     "@babel/core": "^7.12.16",
@@ -24,6 +30,10 @@
     "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-vue": "^8.0.3",
     "prettier": "^2.4.1",
-    "vue-template-compiler": "^2.6.14"
+    "sass": "~1.32.0",
+    "sass-loader": "^10.0.0",
+    "vue-cli-plugin-vuetify": "~2.5.8",
+    "vue-template-compiler": "^2.6.14",
+    "vuetify-loader": "^1.7.0"
   }
 }

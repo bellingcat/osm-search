@@ -1,42 +1,35 @@
 <template>
-  <div id="app">
-    <button @click="search">Search</button>
-    <div class="results">
-      <SearchResult
-        v-for="(result, i) in results"
-        :key="'result' + i"
-        :result="result"
-        :resultIndex="i"
-        :mode="mode"
-      />
-    </div>
-  </div>
+  <v-app>
+    <v-app-bar style="flex-grow: 0" class="text-no-wrap">
+      <v-app-bar-title>Bellingcat OpenStreetMap search</v-app-bar-title>
+      <v-spacer />
+      <google-login />
+    </v-app-bar>
+    <v-main v-if="$store.state.user">
+      <SearchControls />
+      <SearchResults />
+    </v-main>
+    <v-main v-else>
+      <v-container>
+        <v-alert type="error" style="padding: 0.75em; margin-top: 1em">
+          Please sign in to continue.
+        </v-alert>
+      </v-container>
+    </v-main>
+  </v-app>
 </template>
 
 <script>
-import SearchResult from "./components/SearchResult.vue";
+import SearchResults from "./components/SearchResults.vue";
+import SearchControls from "./components/SearchControls.vue";
+import GoogleLogin from "./components/GoogleLogin.vue";
 
 export default {
   name: "App",
   components: {
-    SearchResult,
-  },
-  data() {
-    return {
-      results: [],
-      mode: "google",
-    };
-  },
-  methods: {
-    search() {
-      fetch(
-        "http://127.0.0.1:5000/intersection?l=-71.9989&b=41&r=-69.5&t=43&buffer=50&point_filter=WHERE (amenity = 'retaurant' OR amenity = 'cafe' OR amenity = 'pub' OR amenity = 'fast_food')&line_filter=WHERE (railway IS NOT null AND bridge IS NOT null)"
-      )
-        .then((d) => d.json())
-        .then((data) => {
-          this.results = data;
-        });
-    },
+    SearchResults,
+    SearchControls,
+    GoogleLogin,
   },
 };
 </script>
