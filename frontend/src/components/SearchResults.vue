@@ -15,6 +15,7 @@
         <v-radio-group v-model="mode" row>
           <v-radio label="OSM" value="osm" />
           <v-radio label="Google" value="google" />
+          <v-radio label="Terrain" value="terrain" />
           <v-radio label="Satellite" value="satellite" />
         </v-radio-group>
         <div class="results">

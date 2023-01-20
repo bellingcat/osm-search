@@ -165,7 +165,9 @@ export default {
     },
     url() {
       if (this.$store.state.mode == "google") {
-        return "https://maps.googleapis.com/maps/vt?pb=!1m5!1m4!1i{z}!2i{x}!3i{y}!4i256!2m3!1e0!2sm!3i70350780!3m12!2sen-US!3sUS!5e18!12m4!1e68!2m2!1sset!2sRoadmap!12m3!1e37!2m1!1ssmartmaps!4e0!23i1379903&key=AIzaSyAo0g0nZh5aOEhMW2S876KMjJ8OqaN-VwQ";
+        return "http://mt0.google.com/vt/lyrs=m&x={x}&y={y}&z={z}";
+      } else if (this.$store.state.mode == "terrain") {
+        return "http://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}";
       } else if (this.$store.state.mode == "satellite") {
         return "https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/512/{z}/{x}/{y}{r}?access_token=pk.eyJ1IjoiYmVsbGluZ2NhdC1tYXBib3giLCJhIjoiY2w4c201OGZsMHdkOTNwbWhkb3I4dGE2cCJ9.GFxMJQJ-dV7VRBAcTTHOzg";
       } else {
