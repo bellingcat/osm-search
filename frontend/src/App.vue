@@ -1,7 +1,7 @@
 <template>
   <v-app>
     <v-app-bar style="flex-grow: 0" class="text-no-wrap">
-      <v-app-bar-title>Bellingcat OpenStreetMap search</v-app-bar-title>
+      <v-toolbar-title>Bellingcat OpenStreetMap search</v-toolbar-title>
       <v-spacer />
       <google-login />
     </v-app-bar>
