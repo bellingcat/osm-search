@@ -10,6 +10,7 @@ from functools import wraps
 import os
 from loguru import logger
 from datetime import datetime
+import math
 
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", None)
 
@@ -28,8 +29,15 @@ def json_query(query, conn=None):
 
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
+    cur.execute("SET SESSION statement_timeout = '120s';")
+
     t1 = datetime.now()
-    cur.execute(query)
+    try:
+        cur.execute(query)
+    except psycopg2.errors.QueryCanceled:
+        logger.warning("Request timed out")
+        return Response(status=400)
+
     data = cur.fetchall()
     cur.close()
     conn.close()
@@ -98,7 +106,13 @@ def get_intersection():
     t = float(args.get("t"))
 
     bbox = [l, b, r, t]
+
+    area = math.pow(6371,2) * math.pi * abs(math.sin(math.radians(t)) - math.sin(math.radians(b))) * abs(r - l) / 180
     
+    # reject queries that are too large
+    if area > 4e6:
+        return Response(status=400)
+
     bbox_filter = sql.SQL("AND way && ST_Transform(ST_MakeEnvelope({left}, {bottom}, {right}, {top}, 4326), 3857)").format(left=sql.Literal(bbox[0]), bottom=sql.Literal(bbox[1]), right=sql.Literal(bbox[2]), top=sql.Literal(bbox[3]))
 
     first = filters[0]

@@ -101,7 +101,12 @@ export default new Vuex.Store({
           },
         }
       )
-        .then((d) => d.json())
+        .then((d) => {
+          if (d.status != 200) {
+            return Promise.reject(Error(d.status));
+          }
+          return d.json();
+        })
         .then((data) => {
           let time2 = performance.now();
           commit("setResponseTime", time2 - time1);
@@ -109,12 +114,21 @@ export default new Vuex.Store({
           commit("setLoading", false);
           commit("setError", false);
         })
-        .catch(() => {
+        .catch((e) => {
           commit("setLoading", false);
-          commit(
-            "setError",
-            "Search error. Check your custom features or email logan@bellingcat.com."
-          );
+          if (e.message == 400) {
+            commit("setLoading", false);
+            commit(
+              "setError",
+              "Your search area is too large, or your search timed out. Zoom in on a smaller area or change your search parameters. Adding a point feature (green) will increase speed."
+            );
+          } else {
+            commit("setLoading", false);
+            commit(
+              "setError",
+              "Search error. Check your custom features or email logan@bellingcat.com."
+            );
+          }
         });
     },
   },
