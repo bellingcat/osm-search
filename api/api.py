@@ -215,6 +215,19 @@ def make_filter_query(filter):
         if 'value' not in subfilter or subfilter['value'] == '':
             filter_query = sql.SQL("{filter_query} ({parameter} {comparison})").format(filter_query=filter_query, parameter=parameter, comparison=sql.SQL(subfilter['comparison']))
         else:
+            if subfilter['comparison'] == 'starts with':
+                subfilter['value'] = f"{subfilter['value']}%"
+                subfilter['comparison'] = 'ILIKE'
+            elif subfilter['comparison'] == 'ends with':
+                subfilter['value'] = f"%{subfilter['value']}"
+                subfilter['comparison'] = 'ILIKE'
+            elif subfilter['comparison'] == 'contains':
+                subfilter['value'] = f"%{subfilter['value']}%"
+                subfilter['comparison'] = 'ILIKE'
+            elif subfilter['comparison'] == 'does not contain':
+                subfilter['value'] = f"%{subfilter['value']}%"
+                subfilter['comparison'] = 'NOT ILIKE'
+
             filter_query = sql.SQL("{filter_query} ({parameter} {comparison} {value})").format(filter_query=filter_query, parameter=parameter, comparison=sql.SQL(subfilter['comparison']), value=sql.Literal(subfilter['value']))
 
         if i != len(filter['filters']) - 1:
