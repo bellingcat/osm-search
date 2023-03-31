@@ -31,6 +31,9 @@ export default {
     SearchControls,
     GoogleLogin,
   },
+  mounted() {
+    this.$store.dispatch("getKeys");
+  },
 };
 </script>
 

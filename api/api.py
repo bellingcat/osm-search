@@ -19,8 +19,105 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 CORS(app)
 
+ALLOWED_COMPARISONS = [
+                  '=',
+                  '!=',
+                  '>',
+                  '<',
+                  '>=',
+                  '<=',
+                  'starts with',
+                  'ends with',
+                  'contains',
+                  'does not contain',
+                  'is null',
+                  'is not null',
+                ]
+
+ALLOWED_METHODS = [
+    "OR",
+    "AND"
+]
+
+ALLOWED_CASTS = [
+    "integer",
+    "float",
+    "cast_to_int",
+    "cast_to_float"
+]
+
+KEY_COLUMNS = [
+    'access',
+    'addr:housename',
+    'addr:housenumber',
+    'addr:interpolation',
+    'admin_level',
+    'aerialway',
+    'aeroway',
+    'amenity',
+    'area',
+    'barrier',
+    'bicycle',
+    'brand',
+    'bridge',
+    'boundary',
+    'building',
+    'capital',
+    'construction',
+    'covered',
+    'culvert',
+    'cutting',
+    'denomination',
+    'disused',
+    'ele',
+    'embankment',
+    'foot',
+    'generator:source',
+    'harbour',
+    'highway',
+    'historic',
+    'horse',
+    'intermittent',
+    'junction',
+    'landuse',
+    'layer',
+    'leisure',
+    'lock',
+    'man_made',
+    'military',
+    'motorcar',
+    'name',
+    'natural',
+    'office',
+    'oneway',
+    'operator',
+    'place',
+    'population',
+    'power',
+    'power_source',
+    'public_transport',
+    'railway',
+    'ref',
+    'religion',
+    'route',
+    'service',
+    'shop',
+    'sport',
+    'surface',
+    'toll',
+    'tourism',
+    'tower:type',
+    'tracktype',
+    'tunnel',
+    'water',
+    'waterway',
+    'wetland',
+    'width',
+    'wood'
+]
+
 def get_db_connection():
-    conn = psycopg2.connect(database='osm')
+    conn = psycopg2.connect(database='mass')
     return conn
 
 def json_query(query, conn=None):
@@ -92,6 +189,42 @@ def token_required(f):
 
     return decorated
 
+def make_filter_query(filter):
+    filter_query = sql.SQL("WHERE")
+    
+    i = 0
+
+    for subfilter in filter['filters']:
+        if subfilter['comparison'] not in ALLOWED_COMPARISONS:
+            logger.error(f"Invalid comparison {subfilter['comparison']}")
+            break
+
+        if subfilter['parameter'] not in KEY_COLUMNS:
+            parameter = sql.SQL("tags->{parameter}").format(parameter=sql.Literal(subfilter['parameter']))
+        else:
+            parameter = sql.SQL("{parameter}").format(parameter=sql.Identifier(subfilter['parameter']))
+
+        if 'cast' in subfilter and subfilter['cast'] in ALLOWED_CASTS:
+            if subfilter['cast'] == 'cast_to_float':
+                parameter = sql.SQL("cast_to_float({parameter}, 0.0)").format(parameter=parameter)
+            elif subfilter['cast'] == 'cast_to_int':
+                parameter = sql.SQL("cast_to_int({parameter}, 0)").format(parameter=parameter)
+            else:
+                parameter = sql.SQL("CAST({parameter} AS {cast})").format(parameter=parameter, cast=sql.SQL(subfilter['cast']))
+
+        if 'value' not in subfilter or subfilter['value'] == '':
+            filter_query = sql.SQL("{filter_query} ({parameter} {comparison})").format(filter_query=filter_query, parameter=parameter, comparison=sql.SQL(subfilter['comparison']))
+        else:
+            filter_query = sql.SQL("{filter_query} ({parameter} {comparison} {value})").format(filter_query=filter_query, parameter=parameter, comparison=sql.SQL(subfilter['comparison']), value=sql.Literal(subfilter['value']))
+
+        if i != len(filter['filters']) - 1:
+            filter_query = sql.SQL("{filter_query} {method}").format(filter_query=filter_query, method=sql.SQL(filter['method']))
+
+        i += 1
+
+    return filter_query
+
+
 @app.route('/intersection')
 @token_required
 def get_intersection():
@@ -118,14 +251,14 @@ def get_intersection():
     first = filters[0]
 
     first_query = sql.SQL("SELECT name, ST_Centroid(way) AS point_geom, way AS geom FROM {table}").format(table=sql.SQL('planet_osm_line') if first['type'] == 'line' else sql.SQL('planet_osm_polygon') if first['type'] == 'polygon' else sql.SQL('planet_osm_point'))
-    first_filter = sql.SQL("WHERE ({filter})").format(filter=sql.SQL(first['filter']))
+    first_filter = make_filter_query(first)
     first_assembled = sql.SQL("{query} {filter} {bbox}").format(query=first_query, filter=first_filter, bbox=bbox_filter)
 
     logger.info(f"Buffer: {buffer}\tFilters: {filters}\tBbox: [{l},{b},{r},{t}]")
 
     subqueries = []
     for f in filters[1:]:
-        filter = sql.SQL("WHERE ({filter})").format(filter=sql.SQL(f['filter']))
+        filter = make_filter_query(f)
 
         if f['type'] == 'point':
             query = sql.SQL("SELECT way AS geom FROM planet_osm_point")

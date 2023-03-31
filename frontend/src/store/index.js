@@ -19,6 +19,8 @@ export default new Vuex.Store({
     mapCenter: [42.2, -71.7],
     mapZoom: 8,
     responseTime: null,
+    osmKeys: [],
+    selectedKeyValues: [],
   },
   mutations: {
     initializeCredentials(state) {
@@ -48,6 +50,14 @@ export default new Vuex.Store({
 
     updateSelected(state, value) {
       state.selected = [...value];
+    },
+    removeSelected(state, index) {
+      let value = state.selected;
+      let newValue = [
+        ...value.slice(0, index),
+        ...value.slice(index + 1, value.length),
+      ];
+      state.selected = newValue;
     },
     setSearchResults(state, data) {
       state.searchResults = data;
@@ -82,8 +92,51 @@ export default new Vuex.Store({
     setResponseTime(state, t) {
       state.responseTime = t;
     },
+    setKeys(state, keys) {
+      state.osmKeys = keys;
+    },
+    setSelectedKeyValues(state, values) {
+      state.selectedKeyValues = values;
+    },
   },
   actions: {
+    getKeys({ commit }) {
+      fetch(
+        "https://taginfo.openstreetmap.org/api/4/keys/all?page=1&rp=200&filter=in_wiki&sortname=count_all&sortorder=desc"
+      )
+        .then((d) => {
+          if (d.status != 200) {
+            return Promise.reject(Error(d.status));
+          }
+          return d.json();
+        })
+        .then((data) => {
+          commit(
+            "setKeys",
+            data.data.map((d) => d.key)
+          );
+        });
+    },
+    getValues({ commit }, v) {
+      commit("setSelectedKeyValues", []);
+
+      fetch(
+        "https://taginfo.openstreetmap.org/api/4/key/values?rp=50&sortname=count_all&sortorder=desc&key=" +
+          v
+      )
+        .then((d) => {
+          if (d.status != 200) {
+            return Promise.reject(Error(d.status));
+          }
+          return d.json();
+        })
+        .then((data) => {
+          commit(
+            "setSelectedKeyValues",
+            data.data.filter((d) => d.fraction > 0.01).map((d) => d.value)
+          );
+        });
+    },
     search({ state, commit }) {
       let bbox = state.bbox;
       let range = state.range;
@@ -94,7 +147,8 @@ export default new Vuex.Store({
       let time1 = performance.now();
 
       fetch(
-        `https://api.baarle-hertog.xyz/intersection?l=${bbox[0][1]}&b=${bbox[0][0]}&r=${bbox[1][1]}&t=${bbox[1][0]}&buffer=${range}&filters=${filters}`,
+        // `https://api.osm-search.bellingcat.com/intersection?l=${bbox[0][1]}&b=${bbox[0][0]}&r=${bbox[1][1]}&t=${bbox[1][0]}&buffer=${range}&filters=${filters}`,
+        `http://localhost:5050/intersection?l=${bbox[0][1]}&b=${bbox[0][0]}&r=${bbox[1][1]}&t=${bbox[1][0]}&buffer=${range}&filters=${filters}`,
         {
           headers: {
             Authorization: "Bearer " + state.token,

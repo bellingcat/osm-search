@@ -11,33 +11,12 @@
         <v-card-title>Selected features</v-card-title>
         <v-card-text>
           <v-col>
-            <v-card
+            <FeatureView
               v-for="(query, i) in $store.state.selected"
               :key="query.name + query.type"
-              close
-              style="margin-bottom: 1em"
-            >
-              <v-card-title
-                :color="
-                  query.type == 'point'
-                    ? '#8BC34A'
-                    : query.type == 'line'
-                    ? '#00BCD4'
-                    : '#FFC107'
-                "
-              >
-                {{ query.name }}&nbsp;
-                <span class="type">({{ query.type }})</span>
-              </v-card-title>
-              <v-card-text>
-                <span class="code">
-                  {{ query.filter }}
-                </span>
-              </v-card-text>
-              <v-card-actions>
-                <v-btn color="red" text @click="remove(i)"> Remove </v-btn>
-              </v-card-actions>
-            </v-card>
+              :query="query"
+              :index="i"
+            />
           </v-col>
         </v-card-text>
       </v-card>
@@ -64,44 +43,25 @@
           >
         </v-card-text>
       </v-card>
-      <v-card style="margin-top: 1em">
-        <v-card-title>Custom feature</v-card-title>
-        <v-card-text>
-          <v-row>
-            <v-col cols="3"
-              ><v-select
-                label="Feature type"
-                :items="queryTypes"
-                v-model="selectedQueryType"
-              ></v-select> </v-col
-            ><v-col>
-              <v-text-field
-                class="code"
-                label="Filter statement"
-                v-model="customFilter"
-              ></v-text-field>
-            </v-col>
-          </v-row>
-        </v-card-text>
-        <v-card-actions>
-          <v-btn color="primary" text @click="addCustom">Add</v-btn>
-        </v-card-actions>
-      </v-card>
+      <FeatureCustom />
     </v-col>
   </v-row>
 </template>
 
 <script>
 import queries from "./queries.js";
+import FeatureView from "./FeatureView.vue";
+import FeatureCustom from "./FeatureCustom.vue";
 
 export default {
   name: "FeatureSelector",
+  components: {
+    FeatureView,
+    FeatureCustom,
+  },
   data() {
     return {
       queries,
-      queryTypes: ["point", "line", "polygon"],
-      selectedQueryType: "point",
-      customFilter: "",
       accepting: false,
     };
   },
@@ -126,28 +86,6 @@ export default {
     },
     startDrag(e, item) {
       e.dataTransfer.setData("object", JSON.stringify(item));
-    },
-    remove(index) {
-      let value = this.$store.state.selected;
-      let newValue = [
-        ...value.slice(0, index),
-        ...value.slice(index + 1, value.length),
-      ];
-      console.log(index, value, newValue);
-      this.$store.commit("updateSelected", newValue);
-    },
-    addCustom() {
-      this.$store.commit("updateSelected", [
-        ...this.$store.state.selected,
-        {
-          name: "Custom filter",
-          type: this.selectedQueryType,
-          filter: this.customFilter,
-        },
-      ]);
-
-      this.customFilter = "";
-      this.selectedQueryType = "point";
     },
   },
 };

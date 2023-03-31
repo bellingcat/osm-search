@@ -2,177 +2,503 @@ export default [
   {
     name: "Power pylon",
     type: "point",
-    filter: "power = 'tower' OR power = 'pole'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "power",
+        comparison: "=",
+        value: "tower",
+      },
+      {
+        parameter: "power",
+        comparison: "=",
+        value: "pole",
+      },
+    ],
   },
   {
     name: "Public transport stop",
     type: "point",
-    filter: "(public_transport IS NOT null OR highway='bus_stop')",
+    method: "OR",
+    filters: [
+      {
+        parameter: "public_transport",
+        comparison: "is not null",
+      },
+      {
+        parameter: "highway",
+        comparison: "=",
+        value: "bus_stop",
+      },
+    ],
   },
   {
     name: "Church",
     type: "point",
-    filter: "amenity = 'place_of_worship'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "amenity",
+        comparison: "=",
+        value: "place_of_worship",
+      },
+    ],
   },
   {
     name: "Hospital",
     type: "point",
-    filter: "amenity = 'hospital'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "amenity",
+        comparison: "=",
+        value: "hospital",
+      },
+    ],
   },
   {
     name: "Military",
     type: "point",
-    filter: "military IS NOT null OR landuse = 'military'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "military",
+        comparison: "is not null",
+      },
+      {
+        parameter: "landuse",
+        comparison: "=",
+        value: "military",
+      },
+    ],
   },
   {
     name: "Restaurant",
     type: "point",
-    filter:
-      "amenity = 'restaurant' OR amenity = 'cafe' OR amenity = 'pub' OR amenity = 'fast_food'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "amenity",
+        comparison: "=",
+        value: "restaurant",
+      },
+      {
+        parameter: "amenity",
+        comparison: "=",
+        value: "cafe",
+      },
+      {
+        parameter: "amenity",
+        comparison: "=",
+        value: "pub",
+      },
+      {
+        parameter: "amenity",
+        comparison: "=",
+        value: "fast_food",
+      },
+    ],
   },
   {
     name: "Waterway",
     type: "line",
-    filter: "waterway IS NOT null",
+    method: "OR",
+    filters: [
+      {
+        parameter: "waterway",
+        comparison: "is not null",
+      },
+    ],
   },
   {
     name: "Road",
     type: "line",
-    filter: "highway IS NOT null",
+    method: "OR",
+    filters: [
+      {
+        parameter: "highway",
+        comparison: "is not null",
+      },
+    ],
   },
   {
     name: "Railroad",
     type: "line",
-    filter: "railway IS NOT null",
+    method: "OR",
+    filters: [
+      {
+        parameter: "railway",
+        comparison: "is not null",
+      },
+    ],
   },
   {
     name: "Bridge",
     type: "line",
-    filter: "bridge IS NOT null",
+    method: "OR",
+    filters: [
+      {
+        parameter: "bridge",
+        comparison: "is not null",
+      },
+    ],
   },
   {
     name: "Road (motorway)",
     type: "line",
-    filter: "highway = 'motorway' OR highway = 'motorway_link'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "highway",
+        comparison: "=",
+        value: "motorway",
+      },
+      {
+        parameter: "highway",
+        comparison: "=",
+        value: "motorway_link",
+      },
+    ],
   },
   {
     name: "Road (primary)",
     type: "line",
-    filter: "highway = 'primary' OR highway = 'primary_link'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "highway",
+        comparison: "=",
+        value: "primary",
+      },
+      {
+        parameter: "highway",
+        comparison: "=",
+        value: "primary_link",
+      },
+    ],
   },
   {
     name: "Road (secondary)",
     type: "line",
-    filter: "highway = 'secondary' OR highway = 'secondary_link",
+    method: "OR",
+    filters: [
+      {
+        parameter: "highway",
+        comparison: "=",
+        value: "secondary",
+      },
+      {
+        parameter: "highway",
+        comparison: "=",
+        value: "secondary_link",
+      },
+    ],
   },
   {
     name: "Road (residential)",
     type: "line",
-    filter: "highway = 'residential'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "highway",
+        comparison: "=",
+        value: "residential",
+      },
+    ],
   },
   {
     name: "Unpaved road",
     type: "line",
-    filter: "surface = 'unpaved'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "surface",
+        comparison: "=",
+        value: "unpaved",
+      },
+    ],
   },
   {
     name: "1-lane road",
     type: "line",
-    filter: "tags->'lanes' = '1'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "lanes",
+        comparison: "=",
+        value: "1",
+      },
+    ],
   },
   {
     name: "2-lane road",
     type: "line",
-    filter: "tags->'lanes' = '2'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "lanes",
+        comparison: "=",
+        value: "2",
+      },
+    ],
   },
   {
     name: "3-lane road",
     type: "line",
-    filter: "tags->'lanes' = '3'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "lanes",
+        comparison: "=",
+        value: "3",
+      },
+    ],
   },
   {
     name: "4-lane road",
     type: "line",
-    filter: "tags->'lanes' = '4'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "lanes",
+        comparison: "=",
+        value: "4",
+      },
+    ],
   },
   {
     name: "5-lane road",
     type: "line",
-    filter: "tags->'lanes' = '5'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "lanes",
+        comparison: "=",
+        value: "5",
+      },
+    ],
   },
   {
     name: "6-lane road",
     type: "line",
-    filter: "tags->'lanes' = '6'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "lanes",
+        comparison: "=",
+        value: "6",
+      },
+    ],
+  },
+  {
+    name: "Sidewalk",
+    type: "line",
+    method: "AND",
+    filters: [
+      {
+        parameter: "sidewalk",
+        comparison: "is not null",
+      },
+      {
+        parameter: "sidewalk",
+        comparison: "!=",
+        value: "no",
+      },
+    ],
   },
   {
     name: "Cliff",
     type: "line",
-    filter: "planet_osm_line.natural = 'cliff'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "natural",
+        comparison: "=",
+        value: "cliff",
+      },
+    ],
   },
   {
     name: "Park",
     type: "polygon",
-    filter: "leisure = 'park'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "leisure",
+        comparison: "=",
+        value: "park",
+      },
+    ],
   },
   {
     name: "Industrial area",
     type: "polygon",
-    filter: "landuse = 'industrial'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "landuse",
+        comparison: "=",
+        value: "industrial",
+      },
+    ],
   },
   {
     name: "Body of water",
     type: "polygon",
-    filter: "water IS NOT null",
+    method: "OR",
+    filters: [
+      {
+        parameter: "water",
+        comparison: "is not null",
+      },
+    ],
   },
   {
     name: "Forest",
     type: "polygon",
-    filter: "landuse = 'forest' OR planet_osm_polygon.natural = 'forest'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "landuse",
+        comparison: "=",
+        value: "forest",
+      },
+      {
+        parameter: "natural",
+        comparison: "=",
+        value: "forest",
+      },
+    ],
   },
   {
     name: "Farmland",
     type: "polygon",
-    filter: "landuse = 'farmland'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "landuse",
+        comparison: "=",
+        value: "farmland",
+      },
+    ],
   },
   {
     name: "Building",
     type: "polygon",
-    filter: "building IS NOT null",
+    method: "OR",
+    filters: [
+      {
+        parameter: "building",
+        comparison: "is not null",
+      },
+    ],
   },
   {
     name: "Building (1 story)",
     type: "polygon",
-    filter: "tags->'building:levels' = '1'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "building:levels",
+        comparison: "=",
+        value: "1",
+      },
+    ],
   },
   {
     name: "Building (2 story)",
     type: "polygon",
-    filter: "tags->'building:levels' = '2'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "building:levels",
+        comparison: "=",
+        value: "2",
+      },
+    ],
   },
   {
     name: "Building (3 story)",
     type: "polygon",
-    filter: "tags->'building:levels' = '3'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "building:levels",
+        comparison: "=",
+        value: "3",
+      },
+    ],
   },
   {
     name: "Building (4 story)",
     type: "polygon",
-    filter: "tags->'building:levels' = '4'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "building:levels",
+        comparison: "=",
+        value: "4",
+      },
+    ],
   },
   {
-    name: "Building (5+ stories)",
+    name: "Building (5-9 stories)",
     type: "polygon",
-    filter: "(tags->'building:levels')::integer >= 5",
+    method: "AND",
+    filters: [
+      {
+        parameter: "building:levels",
+        comparison: ">=",
+        value: "5",
+        cast: "cast_to_float",
+      },
+      {
+        parameter: "building:levels",
+        comparison: "<",
+        value: "10",
+        cast: "cast_to_float",
+      },
+    ],
+  },
+  {
+    name: "Building (10+ stories)",
+    type: "polygon",
+    method: "OR",
+    filters: [
+      {
+        parameter: "building:levels",
+        comparison: ">=",
+        value: "10",
+        cast: "cast_to_float",
+      },
+    ],
   },
   {
     name: "Beach",
     type: "polygon",
-    filter: "planet_osm_polygon.natural = 'beach'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "natural",
+        comparison: "=",
+        value: "beach",
+      },
+    ],
   },
   {
     name: "Military",
     type: "polygon",
-    filter: "military IS NOT null OR landuse = 'military'",
+    method: "OR",
+    filters: [
+      {
+        parameter: "military",
+        comparison: "is not null",
+      },
+      {
+        parameter: "landuse",
+        comparison: "=",
+        value: "military",
+      },
+    ],
   },
 ];
