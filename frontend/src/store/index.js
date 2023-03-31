@@ -133,7 +133,7 @@ export default new Vuex.Store({
         .then((data) => {
           commit(
             "setSelectedKeyValues",
-            data.data.filter((d) => d.fraction > 0.01).map((d) => d.value)
+            data.data.filter((d) => d.fraction > 0.002).map((d) => d.value)
           );
         });
     },
@@ -147,8 +147,7 @@ export default new Vuex.Store({
       let time1 = performance.now();
 
       fetch(
-        // `https://api.osm-search.bellingcat.com/intersection?l=${bbox[0][1]}&b=${bbox[0][0]}&r=${bbox[1][1]}&t=${bbox[1][0]}&buffer=${range}&filters=${filters}`,
-        `http://localhost:5050/intersection?l=${bbox[0][1]}&b=${bbox[0][0]}&r=${bbox[1][1]}&t=${bbox[1][0]}&buffer=${range}&filters=${filters}`,
+        `https://api.osm-search.bellingcat.com/intersection?l=${bbox[0][1]}&b=${bbox[0][0]}&r=${bbox[1][1]}&t=${bbox[1][0]}&buffer=${range}&filters=${filters}`,
         {
           headers: {
             Authorization: "Bearer " + state.token,
