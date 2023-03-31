@@ -24,8 +24,21 @@
             v-model="f.parameter"
             :items="$store.state.osmKeys"
             @input="getValues"
-          ></v-combobox
-        ></v-col>
+          >
+            <template
+              v-slot:append
+              v-if="f.parameter != '' && f.parameter != null"
+            >
+              <a
+                :href="'https://wiki.openstreetmap.org/wiki/Key:' + f.parameter"
+                target="_blank"
+                class="super"
+              >
+                <v-icon x-small>mdi-open-in-new</v-icon></a
+              >
+            </template>
+          </v-combobox></v-col
+        >
         <v-col>
           <!-- Dropdown for type of comparison between parameter and value -->
           <v-select
@@ -63,7 +76,12 @@
     </v-card-text>
     <v-card-actions>
       <v-btn color="secondary" text @click="addFilter">Add condition</v-btn>
-      <v-btn style="margin-left: auto" color="primary" text @click="addCustom"
+      <v-btn
+        style="margin-left: auto"
+        color="primary"
+        text
+        @click="addCustom"
+        :disabled="filters[0].parameter == ''"
         >Add custom feature</v-btn
       >
     </v-card-actions>

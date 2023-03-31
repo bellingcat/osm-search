@@ -212,7 +212,7 @@ def make_filter_query(filter):
             else:
                 parameter = sql.SQL("CAST({parameter} AS {cast})").format(parameter=parameter, cast=sql.SQL(subfilter['cast']))
 
-        if 'value' not in subfilter or subfilter['value'] == '':
+        if subfilter['comparison'] == 'is null' or subfilter['comparison'] == 'is not null':
             filter_query = sql.SQL("{filter_query} ({parameter} {comparison})").format(filter_query=filter_query, parameter=parameter, comparison=sql.SQL(subfilter['comparison']))
         else:
             if subfilter['comparison'] == 'starts with':

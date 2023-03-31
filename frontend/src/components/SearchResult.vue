@@ -25,18 +25,12 @@
         </div>
       </v-card-text>
       <v-card-actions>
-        <!-- <a
-          class="outlink"
-          target="_blank"
-          :href="`https://www.google.com/maps/search/?api=1&query=${result.lat},${result.lng}`"
-        > -->
         <v-btn
           :href="`https://www.google.com/maps/search/?api=1&query=${result.lat},${result.lng}`"
           text
           target="_blank"
           >({{ result.lat.toFixed(5) }}, {{ result.lng.toFixed(5) }})</v-btn
         >
-        <!-- </a> -->
       </v-card-actions>
     </v-card>
   </v-col>
