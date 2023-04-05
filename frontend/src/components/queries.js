@@ -33,84 +33,6 @@ export default [
     ],
   },
   {
-    name: "Church",
-    type: "point",
-    method: "OR",
-    filters: [
-      {
-        parameter: "amenity",
-        comparison: "=",
-        value: "place_of_worship",
-      },
-    ],
-  },
-  {
-    name: "Hospital",
-    type: "point",
-    method: "OR",
-    filters: [
-      {
-        parameter: "amenity",
-        comparison: "=",
-        value: "hospital",
-      },
-    ],
-  },
-  {
-    name: "Military",
-    type: "point",
-    method: "OR",
-    filters: [
-      {
-        parameter: "military",
-        comparison: "is not null",
-      },
-      {
-        parameter: "landuse",
-        comparison: "=",
-        value: "military",
-      },
-    ],
-  },
-  {
-    name: "Restaurant",
-    type: "point",
-    method: "OR",
-    filters: [
-      {
-        parameter: "amenity",
-        comparison: "=",
-        value: "restaurant",
-      },
-      {
-        parameter: "amenity",
-        comparison: "=",
-        value: "cafe",
-      },
-      {
-        parameter: "amenity",
-        comparison: "=",
-        value: "pub",
-      },
-      {
-        parameter: "amenity",
-        comparison: "=",
-        value: "fast_food",
-      },
-    ],
-  },
-  {
-    name: "Waterway",
-    type: "line",
-    method: "OR",
-    filters: [
-      {
-        parameter: "waterway",
-        comparison: "is not null",
-      },
-    ],
-  },
-  {
     name: "Road",
     type: "line",
     method: "OR",
@@ -343,17 +265,6 @@ export default [
     ],
   },
   {
-    name: "Body of water",
-    type: "polygon",
-    method: "OR",
-    filters: [
-      {
-        parameter: "water",
-        comparison: "is not null",
-      },
-    ],
-  },
-  {
     name: "Forest",
     type: "polygon",
     method: "OR",
@@ -486,8 +397,32 @@ export default [
     ],
   },
   {
-    name: "Military",
-    type: "polygon",
+    name: "Church",
+    type: "any",
+    method: "OR",
+    filters: [
+      {
+        parameter: "amenity",
+        comparison: "=",
+        value: "place_of_worship",
+      },
+    ],
+  },
+  {
+    name: "Hospital",
+    type: "any",
+    method: "OR",
+    filters: [
+      {
+        parameter: "amenity",
+        comparison: "=",
+        value: "hospital",
+      },
+    ],
+  },
+  {
+    name: "Military use",
+    type: "any",
     method: "OR",
     filters: [
       {
@@ -498,6 +433,72 @@ export default [
         parameter: "landuse",
         comparison: "=",
         value: "military",
+      },
+    ],
+  },
+  {
+    name: "Restaurant",
+    type: "any",
+    method: "OR",
+    filters: [
+      {
+        parameter: "amenity",
+        comparison: "=",
+        value: "restaurant",
+      },
+      {
+        parameter: "amenity",
+        comparison: "=",
+        value: "cafe",
+      },
+      {
+        parameter: "amenity",
+        comparison: "=",
+        value: "pub",
+      },
+      {
+        parameter: "amenity",
+        comparison: "=",
+        value: "fast_food",
+      },
+    ],
+  },
+  {
+    name: "Convenience store",
+    type: "any",
+    method: "OR",
+    filters: [
+      {
+        parameter: "shop",
+        comparison: "=",
+        value: "convenience",
+      },
+    ],
+  },
+  {
+    name: "Fountain",
+    type: "any",
+    method: "OR",
+    filters: [
+      {
+        parameter: "amenity",
+        comparison: "=",
+        value: "fountain",
+      },
+    ],
+  },
+  {
+    name: "Water",
+    type: "any",
+    method: "OR",
+    filters: [
+      {
+        parameter: "water",
+        comparison: "is not null",
+      },
+      {
+        parameter: "waterway",
+        comparison: "is not null",
       },
     ],
   },

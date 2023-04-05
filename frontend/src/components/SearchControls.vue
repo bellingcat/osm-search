@@ -1,40 +1,7 @@
 <template>
   <v-container>
     <v-row style="padding: 0.75em">
-      <v-card style="width: 100%">
-        <v-card-title>Getting started</v-card-title>
-        <v-card-text>
-          <p>
-            With the OpenStreetMap search tool, a researcher can find
-            geolocation leads by searching for specific objects on
-            OpenStreetMap.
-          </p>
-
-          <p>
-            To begin, drag a feature type from the presets list to the "Selected
-            features" list. Adding multiple features will find only locations
-            where those features are nearby each other. Set the maximum distance
-            slider to adjust how far apart the features can be. Adjust the map
-            to contain the area that you want to search, and press the search
-            button. Some queries may take several minutes to run. To increase
-            the speed, zoom in on the map to select a smaller area. Results can
-            be browsed directly, opened in Google Maps by clicking the lat/lng,
-            or downloaded as a CSV or KML file.
-          </p>
-
-          <p>
-            OpenStreetMap is very detailed but accuracy and completeness varies
-            significantly around the world. This tool can be used to find
-            possible leads, but it should not be considered exhaustive or used
-            to exclude areas of interest.
-            <strong
-              >Want to search for a type of feature that's not included on the
-              list?</strong
-            >
-            Contact logan@bellingcat.com.
-          </p>
-        </v-card-text></v-card
-      >
+      <HelpCard />
     </v-row>
     <feature-selector />
     <v-alert
@@ -65,10 +32,11 @@
       <v-card style="width: 100%">
         <v-card-title>Search area</v-card-title>
         <l-map
-          :zoom.sync="zoom"
-          :center.sync="center"
+          :zoom="zoom"
+          :center="center"
           style="width: 100%; height: 600px"
           ref="map"
+          :noBlockingAnimations="true"
         >
           <l-tile-layer :url="url" />
           <l-circle-marker
@@ -95,6 +63,15 @@
             :weight="3"
           ></l-rectangle>
         </l-map>
+        <div class="map-search">
+          <v-text-field
+            variant="outlined"
+            label="Find location"
+            prepend-inner-icon="mdi-magnify"
+            @keypress.enter="searchLocation"
+            v-model="locationSearch"
+          ></v-text-field>
+        </div>
       </v-card>
     </v-row>
     <v-alert
@@ -128,6 +105,7 @@
 <script>
 import { LMap, LTileLayer, LCircleMarker, LRectangle } from "vue2-leaflet";
 import FeatureSelector from "./FeatureSelector.vue";
+import HelpCard from "./HelpCard.vue";
 
 export default {
   name: "SearchControls",
@@ -137,6 +115,12 @@ export default {
     LCircleMarker,
     LRectangle,
     FeatureSelector,
+    HelpCard,
+  },
+  data() {
+    return {
+      locationSearch: "",
+    };
   },
   computed: {
     range: {
@@ -151,16 +135,10 @@ export default {
       get() {
         return this.$store.state.mapCenter;
       },
-      set(val) {
-        this.$store.commit("setCenter", val);
-      },
     },
     zoom: {
       get() {
         return this.$store.state.mapZoom;
-      },
-      set(val) {
-        this.$store.commit("setZoom", val);
       },
     },
     url() {
@@ -198,6 +176,20 @@ export default {
         .getElementById("result" + i)
         .scrollIntoView({ behavior: "smooth" });
     },
+    searchLocation() {
+      this.$store.dispatch("searchLocation", this.locationSearch);
+      this.locationSearch = "";
+    },
   },
 };
 </script>
+
+<style scoped>
+.map-search {
+  position: absolute;
+  top: 0.25em;
+  right: 0.5em;
+  z-index: 1000;
+  width: 300px;
+}
+</style>

@@ -10,13 +10,18 @@
       >
         <v-card-title>Selected features</v-card-title>
         <v-card-text>
-          <v-col>
+          <v-col v-if="$store.state.selected.length > 0">
             <FeatureView
               v-for="(query, i) in $store.state.selected"
               :key="query.name + query.type"
               :query="query"
               :index="i"
             />
+          </v-col>
+          <v-col v-else>
+            <v-alert type="info">
+              Drag and drop feature presets here to add them to the selection.
+            </v-alert>
           </v-col>
         </v-card-text>
       </v-card>
@@ -32,8 +37,10 @@
               query.type == 'point'
                 ? '#8BC34A'
                 : query.type == 'line'
-                ? '#00BCD4'
-                : '#FFC107'
+                ? '#46d4db'
+                : query.type == 'polygon'
+                ? '#FFC107'
+                : '#BEBEBE'
             "
             draggable
             @dragstart="startDrag($event, query)"

@@ -83,10 +83,8 @@ export default new Vuex.Store({
     setError(state, error) {
       state.error = error;
     },
-    setCenter(state, center) {
+    setMapPosition(state, { center, zoom }) {
       state.mapCenter = center;
-    },
-    setZoom(state, zoom) {
       state.mapZoom = zoom;
     },
     setResponseTime(state, t) {
@@ -147,6 +145,8 @@ export default new Vuex.Store({
       let time1 = performance.now();
 
       fetch(
+        // `http://localhost:5050/intersection?l=${bbox[0][1]}&b=${bbox[0][0]}&r=${bbox[1][1]}&t=${bbox[1][0]}&buffer=${range}&filters=${filters}`,
+
         `https://api.osm-search.bellingcat.com/intersection?l=${bbox[0][1]}&b=${bbox[0][0]}&r=${bbox[1][1]}&t=${bbox[1][0]}&buffer=${range}&filters=${filters}`,
         {
           headers: {
@@ -182,6 +182,29 @@ export default new Vuex.Store({
               "Search error. Check your custom features or email logan@bellingcat.com."
             );
           }
+        });
+    },
+    searchLocation({ state, commit }, search_text) {
+      fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${search_text}.json?access_token=pk.eyJ1IjoiYmVsbGluZ2NhdC1tYXBib3giLCJhIjoiY2tleW0wbWliMDA1cTJ5bzdkbTRraHgwZSJ9.GJQkjPzj8554VhR5SPsfJg`
+      )
+        .then((d) => {
+          if (d.status != 200) {
+            return Promise.reject(Error(d.status));
+          }
+          return d.json();
+        })
+        .then((data) => {
+          let maxBounds = Math.max(
+            data.features[0].bbox[2] - data.features[0].bbox[0],
+            data.features[0].bbox[3] - data.features[0].bbox[1]
+          );
+          console.log(maxBounds, Math.log2(maxBounds), Math.round(Math.log2(maxBounds) + 9));
+
+          commit("setMapPosition", {center: [
+            data.features[0].center[1],
+            data.features[0].center[0],
+          ], zoom: Math.round(9 - Math.log2(maxBounds))});
         });
     },
   },

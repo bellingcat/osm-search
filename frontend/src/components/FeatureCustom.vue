@@ -93,8 +93,8 @@ export default {
   name: "FeatureCustom",
   data() {
     return {
-      queryTypes: ["point", "line", "polygon"],
-      selectedQueryType: "point",
+      queryTypes: ["any", "point", "line", "polygon"],
+      selectedQueryType: "any",
       method: "OR",
       filters: [
         {

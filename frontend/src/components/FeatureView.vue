@@ -15,7 +15,12 @@
           >
             <v-icon x-small>mdi-open-in-new</v-icon></a
           >
-          {{ f.comparison }} {{ f.value }}
+          {{ f.comparison }}
+          {{
+            f.comparison == "is null" || f.comparison == "is not null"
+              ? ""
+              : f.value
+          }}
         </div>
       </div>
     </v-card-text>

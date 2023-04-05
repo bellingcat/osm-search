@@ -73,8 +73,10 @@ export default {
   methods: {
     clicked() {
       this.$store.commit("setSelectedResult", this.index);
-      this.$store.commit("setCenter", [this.result.lat, this.result.lng]);
-      this.$store.commit("setZoom", 13);
+      this.$store.commit("setMapPosition", {
+        center: [this.result.lat, this.result.lng],
+        zoom: 14,
+      });
     },
   },
 };
