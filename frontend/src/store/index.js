@@ -195,19 +195,20 @@ export default new Vuex.Store({
           return d.json();
         })
         .then((data) => {
-          let maxBounds = Math.max(
-            data.features[0].bbox[2] - data.features[0].bbox[0],
-            data.features[0].bbox[3] - data.features[0].bbox[1]
-          );
-          console.log(
-            maxBounds,
-            Math.log2(maxBounds),
-            Math.round(Math.log2(maxBounds) + 9)
-          );
+          let zoom = 14;
+
+          if (data.features[0].bbox) {
+            let maxBounds = Math.max(
+              data.features[0].bbox[2] - data.features[0].bbox[0],
+              data.features[0].bbox[3] - data.features[0].bbox[1]
+            );
+
+            zoom = Math.round(9 - Math.log2(maxBounds));
+          }
 
           commit("setMapPosition", {
             center: [data.features[0].center[1], data.features[0].center[0]],
-            zoom: Math.round(9 - Math.log2(maxBounds)),
+            zoom,
           });
         });
     },
