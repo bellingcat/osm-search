@@ -117,7 +117,7 @@ KEY_COLUMNS = [
 ]
 
 def get_db_connection():
-    conn = psycopg2.connect(database='mass')
+    conn = psycopg2.connect(database='osm')
     return conn
 
 def json_query(query, conn=None):
@@ -190,7 +190,7 @@ def token_required(f):
     return decorated
 
 def make_filter_query(filter):
-    filter_query = sql.SQL("WHERE")
+    filter_query = sql.SQL("")
     
     i = 0
 
@@ -259,13 +259,17 @@ def get_intersection():
     if area > 4e6:
         return Response(status=400)
 
-    bbox_filter = sql.SQL("AND way && ST_Transform(ST_MakeEnvelope({left}, {bottom}, {right}, {top}, 4326), 3857)").format(left=sql.Literal(bbox[0]), bottom=sql.Literal(bbox[1]), right=sql.Literal(bbox[2]), top=sql.Literal(bbox[3]))
+    bbox_filter = sql.SQL("AND (way && ST_Transform(ST_MakeEnvelope({left}, {bottom}, {right}, {top}, 4326), 3857))").format(left=sql.Literal(bbox[0]), bottom=sql.Literal(bbox[1]), right=sql.Literal(bbox[2]), top=sql.Literal(bbox[3]))
 
     first = filters[0]
 
-    first_query = sql.SQL("SELECT name, ST_Centroid(way) AS point_geom, way AS geom FROM {table}").format(table=sql.SQL('planet_osm_line') if first['type'] == 'line' else sql.SQL('planet_osm_polygon') if first['type'] == 'polygon' else sql.SQL('planet_osm_point'))
+    first_query = sql.SQL("SELECT name, ST_Centroid(way) AS point_geom, way AS geom FROM {table}").format(table=
+        sql.SQL('planet_osm_line') if first['type'] == 'line' else
+        sql.SQL('planet_osm_polygon') if first['type'] == 'polygon' else
+        sql.SQL('planet_osm_point') if first['type'] == 'point' else
+        sql.SQL('planet_osm'))
     first_filter = make_filter_query(first)
-    first_assembled = sql.SQL("{query} {filter} {bbox}").format(query=first_query, filter=first_filter, bbox=bbox_filter)
+    first_assembled = sql.SQL("{query} WHERE ({filter}) {bbox}").format(query=first_query, filter=first_filter, bbox=bbox_filter)
 
     logger.info(f"Buffer: {buffer}\tFilters: {filters}\tBbox: [{l},{b},{r},{t}]")
 
@@ -279,8 +283,10 @@ def get_intersection():
             query = sql.SQL("SELECT way AS geom FROM planet_osm_line")
         elif f['type'] == 'polygon':
             query = sql.SQL("SELECT way AS geom FROM planet_osm_polygon")
+        elif f['type'] == 'any':
+            query = sql.SQL("SELECT way AS geom FROM planet_osm")
 
-        assembled = sql.SQL("{query} {filter} {bbox}").format(query=query, filter=filter, bbox=bbox_filter)
+        assembled = sql.SQL("{query} WHERE ({filter}) {bbox}").format(query=query, filter=filter, bbox=bbox_filter)
         subqueries.append(assembled)
 
     join_query  = sql.SQL("SELECT DISTINCT point_geom, name, ST_Y(ST_Transform(point_geom, 4326)) AS lat, ST_X(ST_Transform(point_geom, 4326)) as lng FROM ({point}) point ").format(point=first_assembled)
