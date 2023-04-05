@@ -184,7 +184,7 @@ export default new Vuex.Store({
           }
         });
     },
-    searchLocation({ state, commit }, search_text) {
+    searchLocation({ commit }, search_text) {
       fetch(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${search_text}.json?access_token=pk.eyJ1IjoiYmVsbGluZ2NhdC1tYXBib3giLCJhIjoiY2tleW0wbWliMDA1cTJ5bzdkbTRraHgwZSJ9.GJQkjPzj8554VhR5SPsfJg`
       )
@@ -199,12 +199,16 @@ export default new Vuex.Store({
             data.features[0].bbox[2] - data.features[0].bbox[0],
             data.features[0].bbox[3] - data.features[0].bbox[1]
           );
-          console.log(maxBounds, Math.log2(maxBounds), Math.round(Math.log2(maxBounds) + 9));
+          console.log(
+            maxBounds,
+            Math.log2(maxBounds),
+            Math.round(Math.log2(maxBounds) + 9)
+          );
 
-          commit("setMapPosition", {center: [
-            data.features[0].center[1],
-            data.features[0].center[0],
-          ], zoom: Math.round(9 - Math.log2(maxBounds))});
+          commit("setMapPosition", {
+            center: [data.features[0].center[1], data.features[0].center[0]],
+            zoom: Math.round(9 - Math.log2(maxBounds)),
+          });
         });
     },
   },
