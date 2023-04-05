@@ -117,6 +117,9 @@ export default new Vuex.Store({
     },
     getValues({ commit }, v) {
       commit("setSelectedKeyValues", []);
+      if (v == "" || v == undefined || v == null) {
+        return;
+      }
 
       fetch(
         "https://taginfo.openstreetmap.org/api/4/key/values?rp=50&sortname=count_all&sortorder=desc&key=" +

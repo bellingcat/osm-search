@@ -21,7 +21,7 @@
           <v-combobox
             class="code"
             label="OSM key"
-            v-model="f.parameter"
+            :search-input.sync="f.parameter"
             :items="$store.state.osmKeys"
             @input="getValues"
           >
@@ -65,7 +65,7 @@
           <v-combobox
             class="code"
             label="OSM value"
-            v-model="f.value"
+            :search-input.sync="f.value"
             :items="$store.state.selectedKeyValues"
             :disabled="
               f.comparison == 'is null' || f.comparison == 'is not null'
@@ -125,7 +125,7 @@ export default {
           value: "",
         },
       ];
-      this.selectedQueryType = "point";
+      this.selectedQueryType = "any";
     },
     addFilter() {
       this.filters.push({
