@@ -26,7 +26,7 @@
         significantly around the world. This tool can be used to find possible
         leads, but it should not be considered exhaustive or used to exclude
         areas of interest. For any bugs or new preset requests, contact
-        <a href="mailto:logan@bellingcat.com">logan@bellingcat.com</a>. >
+        <a href="mailto:logan@bellingcat.com">logan@bellingcat.com</a>.
       </p>
     </v-card-text>
     <div class="readmore" @click="toggle" v-if="!expanded">

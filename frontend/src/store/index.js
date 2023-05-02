@@ -122,7 +122,7 @@ export default new Vuex.Store({
       }
 
       fetch(
-        "https://taginfo.openstreetmap.org/api/4/key/values?rp=50&sortname=count_all&sortorder=desc&key=" +
+        "https://taginfo.openstreetmap.org/api/4/key/values?rp=50&sortname=count_all&sortorder=desc&page=1&key=" +
           v
       )
         .then((d) => {
@@ -178,6 +178,9 @@ export default new Vuex.Store({
               "setError",
               "Your search area is too large, or your search timed out. Zoom in on a smaller area or change your search parameters. Adding a point feature (green) will increase speed."
             );
+          } else if (e.message == 403) {
+            commit("setLoading", false);
+            commit("setError", "Your login has expired. Please log in again.");
           } else {
             commit("setLoading", false);
             commit(

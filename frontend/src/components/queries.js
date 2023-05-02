@@ -213,6 +213,18 @@ export default [
     ],
   },
   {
+    name: "One way road",
+    type: "line",
+    method: "OR",
+    filters: [
+      {
+        parameter: "oneway",
+        comparison: "=",
+        value: "yes",
+      },
+    ],
+  },
+  {
     name: "Sidewalk",
     type: "line",
     method: "AND",
@@ -229,6 +241,33 @@ export default [
     ],
   },
   {
+    name: "Pedestrian path",
+    type: "line",
+    method: "OR",
+    filters: [
+      {
+        parameter: "highway",
+        comparison: "=",
+        value: "footway",
+      },
+      {
+        parameter: "highway",
+        comparison: "=",
+        value: "path",
+      },
+      {
+        parameter: "highway",
+        comparison: "=",
+        value: "steps",
+      },
+      {
+        parameter: "highway",
+        comparison: "=",
+        value: "pedestrian",
+      },
+    ],
+  },
+  {
     name: "Cliff",
     type: "line",
     method: "OR",
@@ -237,6 +276,17 @@ export default [
         parameter: "natural",
         comparison: "=",
         value: "cliff",
+      },
+    ],
+  },
+  {
+    name: "Waterway",
+    type: "line",
+    method: "OR",
+    filters: [
+      {
+        parameter: "waterway",
+        comparison: "is not null",
       },
     ],
   },
@@ -290,6 +340,30 @@ export default [
         parameter: "landuse",
         comparison: "=",
         value: "farmland",
+      },
+    ],
+  },
+  {
+    name: "Water body",
+    type: "polygon",
+    method: "OR",
+    filters: [
+      {
+        parameter: "natural",
+        comparison: "=",
+        value: "water",
+      },
+    ],
+  },
+  {
+    name: "Plaza/square",
+    type: "polygon",
+    method: "OR",
+    filters: [
+      {
+        parameter: "place",
+        comparison: "=",
+        value: "square",
       },
     ],
   },
@@ -472,6 +546,29 @@ export default [
         parameter: "shop",
         comparison: "=",
         value: "convenience",
+      },
+    ],
+  },
+  {
+    name: "Supermarket",
+    type: "any",
+    method: "OR",
+    filters: [
+      {
+        parameter: "shop",
+        comparison: "=",
+        value: "supermarket",
+      },
+    ],
+  },
+  {
+    name: "Shop (any)",
+    type: "any",
+    method: "OR",
+    filters: [
+      {
+        parameter: "shop",
+        comparison: "is not null",
       },
     ],
   },
