@@ -87,6 +87,12 @@ export default new Vuex.Store({
       state.mapCenter = center;
       state.mapZoom = zoom;
     },
+    setZoom(state, zoom) {
+      state.mapZoom = zoom;
+    },
+    setCenter(state, center) {
+      state.mapCenter = center;
+    },
     setResponseTime(state, t) {
       state.responseTime = t;
     },

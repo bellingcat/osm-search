@@ -32,8 +32,8 @@
       <v-card style="width: 100%">
         <v-card-title>Search area</v-card-title>
         <l-map
-          :zoom="zoom"
-          :center="center"
+          :zoom.sync="zoom"
+          :center.sync="center"
           style="width: 100%; height: 600px"
           ref="map"
           :noBlockingAnimations="true"
@@ -135,10 +135,16 @@ export default {
       get() {
         return this.$store.state.mapCenter;
       },
+      set(val) {
+        this.$store.commit("setCenter", val);
+      },
     },
     zoom: {
       get() {
         return this.$store.state.mapZoom;
+      },
+      set(val) {
+        this.$store.commit("setZoom", val);
       },
     },
     url() {
