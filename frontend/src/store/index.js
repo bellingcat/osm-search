@@ -3,6 +3,8 @@ import Vuex from "vuex";
 
 Vue.use(Vuex);
 
+const OSM_SEARCH_API = "https://api.osm-search.bellingcat.com";
+
 export default new Vuex.Store({
   state: {
     selected: [],
@@ -154,9 +156,7 @@ export default new Vuex.Store({
       let time1 = performance.now();
 
       fetch(
-        // `http://localhost:5050/intersection?l=${bbox[0][1]}&b=${bbox[0][0]}&r=${bbox[1][1]}&t=${bbox[1][0]}&buffer=${range}&filters=${filters}`,
-
-        `https://api.osm-search.bellingcat.com/intersection?l=${bbox[0][1]}&b=${bbox[0][0]}&r=${bbox[1][1]}&t=${bbox[1][0]}&buffer=${range}&filters=${filters}`,
+        `${OSM_SEARCH_API}/intersection?l=${bbox[0][1]}&b=${bbox[0][0]}&r=${bbox[1][1]}&t=${bbox[1][0]}&buffer=${range}&filters=${filters}`,
         {
           headers: {
             Authorization: "Bearer " + state.token,
@@ -182,7 +182,7 @@ export default new Vuex.Store({
             commit("setLoading", false);
             commit(
               "setError",
-              "Your search area is too large, or your search timed out. Zoom in on a smaller area or change your search parameters. Adding a point feature (green) will increase speed."
+              "Your search area is too large, or your search timed out. Zoom in on a smaller area or change your search parameters."
             );
           } else if (e.message == 403) {
             commit("setLoading", false);
@@ -198,7 +198,7 @@ export default new Vuex.Store({
     },
     searchLocation({ commit }, search_text) {
       fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${search_text}.json?access_token=pk.eyJ1IjoiYmVsbGluZ2NhdC1tYXBib3giLCJhIjoiY2tleW0wbWliMDA1cTJ5bzdkbTRraHgwZSJ9.GJQkjPzj8554VhR5SPsfJg`
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${search_text}.json?access_token=${process.env.VUE_APP_MAPBOX_TOKEN}}`
       )
         .then((d) => {
           if (d.status != 200) {
