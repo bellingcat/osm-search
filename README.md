@@ -2,7 +2,7 @@
 
 This is a tool for allowing user friendly proximity queries from OpenStreetMap data.
 
-Bellingcat has a hosted version of the tool at https://osm-search.bellingcat.com/. For more information, see the accompanying article: https://osm-search.bellingcat.com/
+Bellingcat has a hosted version of the tool at https://osm-search.bellingcat.com/. For more information, see [the accompanying article](https://www.bellingcat.com/resources/how-tos/2023/05/08/finding-geolocation-leads-with-bellingcats-openstreetmap-search-tool/).
 
 ![A screenshot of the tool in use](https://www.bellingcat.com/app/uploads/2023/04/image5-3-1200x829.png)
 
