@@ -46,78 +46,8 @@ ALLOWED_CASTS = [
     "cast_to_float"
 ]
 
-KEY_COLUMNS = [
-    'access',
-    'addr:housename',
-    'addr:housenumber',
-    'addr:interpolation',
-    'admin_level',
-    'aerialway',
-    'aeroway',
-    'amenity',
-    'area',
-    'barrier',
-    'bicycle',
-    'brand',
-    'bridge',
-    'boundary',
-    'building',
-    'capital',
-    'construction',
-    'covered',
-    'culvert',
-    'cutting',
-    'denomination',
-    'disused',
-    'ele',
-    'embankment',
-    'foot',
-    'generator:source',
-    'harbour',
-    'highway',
-    'historic',
-    'horse',
-    'intermittent',
-    'junction',
-    'landuse',
-    'layer',
-    'leisure',
-    'lock',
-    'man_made',
-    'military',
-    'motorcar',
-    'name',
-    'natural',
-    'office',
-    'oneway',
-    'operator',
-    'place',
-    'population',
-    'power',
-    'power_source',
-    'public_transport',
-    'railway',
-    'ref',
-    'religion',
-    'route',
-    'service',
-    'shop',
-    'sport',
-    'surface',
-    'toll',
-    'tourism',
-    'tower:type',
-    'tracktype',
-    'tunnel',
-    'water',
-    'waterway',
-    'wetland',
-    'width',
-    'wood'
-]
-
 def get_db_connection():
-    conn = psycopg2.connect(database='osm')
+    conn = psycopg2.connect(database=os.environ.get("PG_DB"), host=os.environ.get("PG_HOST"), port=os.environ.get("PG_PORT"), user=os.environ.get("PG_USER"), password=os.environ.get("PG_PASSWORD"))         
     return conn
 
 def json_query(query, conn=None):
@@ -126,7 +56,7 @@ def json_query(query, conn=None):
 
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
-    cur.execute("SET SESSION statement_timeout = '120s';")
+    cur.execute("SET SESSION statement_timeout = '100s';")
 
     t1 = datetime.now()
     try:
@@ -167,14 +97,6 @@ def token_required(f):
                 "message": "Invalid Authentication token!",
                 "data": None,
                 "error": "Unauthorized"
-            }, 401
-
-            if 'hd' not in idinfo or idinfo['hd'] != 'bellingcat.com':
-                logger.warning(f"Unauthorized users {idinfo}")
-                return {
-                "message": "Unauthorized user",
-                "data": None,
-                "error": "Unauthorized"
             }, 403
         except Exception as e:
             logger.warning(f"Other error {e}")
@@ -182,7 +104,7 @@ def token_required(f):
                 "message": "Something went wrong",
                 "data": None,
                 "error": str(e)
-            }, 500
+            }, 403
 
         logger.info(f"Authenticated request by {idinfo['email']}")
         return f(*args, **kwargs)
@@ -199,22 +121,25 @@ def make_filter_query(filter):
             logger.error(f"Invalid comparison {subfilter['comparison']}")
             break
 
-        if subfilter['parameter'] not in KEY_COLUMNS:
+        if subfilter['comparison'] == '=':
+            filter_query = sql.SQL("{filter_query} (tags @> {match})").format(filter_query=filter_query, match=sql.Literal(subfilter['parameter'] + '=>' + subfilter['value']))
+        elif subfilter['comparison'] == '!=':
+            filter_query = sql.SQL("{filter_query} NOT(tags @> {match})").format(filter_query=filter_query, match=sql.Literal(subfilter['parameter'] + '=>' + subfilter['value']))
+        elif subfilter['comparison'] == 'is null':
+            filter_query = sql.SQL("{filter_query} NOT(tags?{parameter})").format(filter_query=filter_query, parameter=sql.Literal(subfilter['parameter']))
+        elif subfilter['comparison'] == 'is not null':
+            filter_query = sql.SQL("{filter_query} (tags?{parameter})").format(filter_query=filter_query, parameter=sql.Literal(subfilter['parameter']))
+        else:
             parameter = sql.SQL("tags->{parameter}").format(parameter=sql.Literal(subfilter['parameter']))
-        else:
-            parameter = sql.SQL("{parameter}").format(parameter=sql.Identifier(subfilter['parameter']))
 
-        if 'cast' in subfilter and subfilter['cast'] in ALLOWED_CASTS:
-            if subfilter['cast'] == 'cast_to_float':
-                parameter = sql.SQL("cast_to_float({parameter}, 0.0)").format(parameter=parameter)
-            elif subfilter['cast'] == 'cast_to_int':
-                parameter = sql.SQL("cast_to_int({parameter}, 0)").format(parameter=parameter)
-            else:
-                parameter = sql.SQL("CAST({parameter} AS {cast})").format(parameter=parameter, cast=sql.SQL(subfilter['cast']))
+            if 'cast' in subfilter and subfilter['cast'] in ALLOWED_CASTS:
+                if subfilter['cast'] == 'cast_to_float':
+                    parameter = sql.SQL("cast_to_float({parameter}, 0.0)").format(parameter=parameter)
+                elif subfilter['cast'] == 'cast_to_int':
+                    parameter = sql.SQL("cast_to_int({parameter}, 0)").format(parameter=parameter)
+                else:
+                    parameter = sql.SQL("CAST({parameter} AS {cast})").format(parameter=parameter, cast=sql.SQL(subfilter['cast']))
 
-        if subfilter['comparison'] == 'is null' or subfilter['comparison'] == 'is not null':
-            filter_query = sql.SQL("{filter_query} ({parameter} {comparison})").format(filter_query=filter_query, parameter=parameter, comparison=sql.SQL(subfilter['comparison']))
-        else:
             if subfilter['comparison'] == 'starts with':
                 subfilter['value'] = f"{subfilter['value']}%"
                 subfilter['comparison'] = 'ILIKE'
@@ -263,7 +188,7 @@ def get_intersection():
 
     first = filters[0]
 
-    first_query = sql.SQL("SELECT name, ST_Centroid(way) AS point_geom, way AS geom FROM {table}").format(table=
+    first_query = sql.SQL("SELECT tags->'name' AS name, ST_Centroid(way) AS point_geom, way AS geom FROM {table}").format(table=
         sql.SQL('planet_osm_line') if first['type'] == 'line' else
         sql.SQL('planet_osm_polygon') if first['type'] == 'polygon' else
         sql.SQL('planet_osm_point') if first['type'] == 'point' else
