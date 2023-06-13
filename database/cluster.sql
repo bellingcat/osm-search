@@ -1,0 +1,3 @@
+CLUSTER planet_osm_point USING planet_osm_point_way_idx;
+CLUSTER planet_osm_line USING planet_osm_line_way_idx;
+CLUSTER planet_osm_polygon USING planet_osm_polygon_way_idx;
