@@ -16,6 +16,10 @@
         </v-alert>
       </v-container>
     </v-main>
+    <v-footer>
+      <a href="#">Privacy Policy</a>
+      <a href="#">Terms of Use</a>
+    </v-footer>
   </v-app>
 </template>
 
