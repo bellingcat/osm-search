@@ -1,38 +1,28 @@
 <template>
   <v-app>
     <v-app-bar style="flex-grow: 0" class="text-no-wrap">
-      <v-toolbar-title>Bellingcat OpenStreetMap search</v-toolbar-title>
+      <v-toolbar-title
+        ><router-link to="/" class="nodecoration"
+          >Bellingcat OpenStreetMap search</router-link
+        ></v-toolbar-title
+      >
       <v-spacer />
       <google-login />
     </v-app-bar>
-    <v-main v-if="$store.state.user">
-      <SearchControls />
-      <SearchResults />
-    </v-main>
-    <v-main v-else>
-      <v-container>
-        <v-alert type="error" style="padding: 0.75em; margin-top: 1em">
-          Please sign in to continue.
-        </v-alert>
-      </v-container>
-    </v-main>
-    <v-footer>
-      <a href="#">Privacy Policy</a>
-      <a href="#">Terms of Use</a>
+    <router-view></router-view>
+    <v-footer class="legal">
+      <router-link to="/privacy">Privacy Policy</router-link>
+      <router-link to="/tos">Terms of Service</router-link>
     </v-footer>
   </v-app>
 </template>
 
 <script>
-import SearchResults from "./components/SearchResults.vue";
-import SearchControls from "./components/SearchControls.vue";
 import GoogleLogin from "./components/GoogleLogin.vue";
 
 export default {
   name: "App",
   components: {
-    SearchResults,
-    SearchControls,
     GoogleLogin,
   },
   mounted() {
@@ -44,5 +34,20 @@ export default {
 <style>
 body {
   font-family: Helvetica, Arial, sans-serif;
+}
+
+.legal a {
+  margin-left: 2em;
+  margin-right: 2em;
+  color: inherit !important;
+}
+
+.legal {
+  justify-content: center;
+}
+
+.nodecoration {
+  color: inherit !important;
+  text-decoration: none !important;
 }
 </style>
