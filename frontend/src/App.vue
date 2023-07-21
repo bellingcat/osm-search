@@ -7,8 +7,14 @@
         ></v-toolbar-title
       >
       <v-spacer />
-      <google-login />
+      <span class="user" v-if="user">
+        {{ user.email }}
+      </span>
+      <v-btn v-if="user" href="#" @click="$store.dispatch('signout')"
+        >Sign Out</v-btn
+      >
     </v-app-bar>
+    <FirebaseLogin v-if="!user" />
     <router-view></router-view>
     <v-footer class="legal">
       <router-link to="/privacy">Privacy Policy</router-link>
@@ -18,15 +24,20 @@
 </template>
 
 <script>
-import GoogleLogin from "./components/GoogleLogin.vue";
+import FirebaseLogin from "./components/FirebaseLogin.vue";
 
 export default {
   name: "App",
   components: {
-    GoogleLogin,
+    FirebaseLogin,
   },
   mounted() {
     this.$store.dispatch("getKeys");
+  },
+  computed: {
+    user() {
+      return this.$store.state.user;
+    },
   },
 };
 </script>
@@ -49,5 +60,9 @@ body {
 .nodecoration {
   color: inherit !important;
   text-decoration: none !important;
+}
+
+.user {
+  margin-right: 1em;
 }
 </style>

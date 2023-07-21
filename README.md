@@ -38,4 +38,4 @@ The API requires environment variables for connection with Postgres.
 
 ### Running the frontend
 
-The frontend requires one environment variable, `VUE_ENV_MAPBOX_KEY` to be set. This Mapbox key is used for geocoding queries.
+The frontend requires one environment variable, `VUE_APP_MAPBOX_TOKEN` to be set. This Mapbox key is used for geocoding queries.

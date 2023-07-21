@@ -1,5 +1,7 @@
 import Vue from "vue";
 import Vuex from "vuex";
+import firebase from "firebase/compat/app";
+import "firebase/compat/auth";
 
 Vue.use(Vuex);
 
@@ -17,39 +19,17 @@ export default new Vuex.Store({
     mode: "osm",
     loading: false,
     token: false,
-    user: false,
     mapCenter: [42.2, -71.7],
     mapZoom: 8,
     responseTime: null,
     osmKeys: [],
     selectedKeyValues: [],
+    user: null,
   },
   mutations: {
-    initializeCredentials(state) {
-      if (localStorage.getItem("token")) {
-        const user = JSON.parse(localStorage.getItem("user"));
-
-        if (Math.floor(Date.now() / 1000) > user.exp) {
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-        } else {
-          state.token = localStorage.getItem("token");
-          state.user = JSON.parse(localStorage.getItem("user"));
-        }
-      }
-    },
-    signOut(state) {
-      localStorage.removeItem("token");
-      state.token = false;
-      state.user = false;
-    },
-    setUser(state, { token, user }) {
-      state.token = token;
+    setUser(state, user) {
       state.user = user;
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
     },
-
     updateSelected(state, value) {
       state.selected = [...value];
     },
@@ -106,6 +86,18 @@ export default new Vuex.Store({
     },
   },
   actions: {
+    async signout({ commit }) {
+      try {
+        await firebase.auth().signOut();
+        console.log("User is signed out from firebase.");
+
+        // clean user from store
+        commit("setUser", null);
+      } catch (error) {
+        console.error("signOutUser (firebase/auth.js): ", error);
+      }
+    },
+
     getKeys({ commit }) {
       fetch(
         "https://taginfo.openstreetmap.org/api/4/keys/all?page=1&rp=200&filter=in_wiki&sortname=count_all&sortorder=desc"
@@ -198,7 +190,7 @@ export default new Vuex.Store({
     },
     searchLocation({ commit }, search_text) {
       fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${search_text}.json?access_token=${process.env.VUE_APP_MAPBOX_TOKEN}}`
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${search_text}.json?access_token=${process.env.VUE_APP_MAPBOX_TOKEN}`
       )
         .then((d) => {
           if (d.status != 200) {

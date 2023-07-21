@@ -11,11 +11,6 @@ Vue.config.productionTip = false;
 new Vue({
   store,
   vuetify,
-
-  beforeCreate() {
-    this.$store.commit("initializeCredentials");
-  },
-
   router,
   render: (h) => h(App),
 }).$mount("#app");
