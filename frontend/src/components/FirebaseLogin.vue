@@ -28,6 +28,13 @@ export default {
 
     firebase.auth().onAuthStateChanged((user) => {
       this.$store.commit("setUser", user);
+      if (user) {
+        user.getIdToken().then((token) => {
+          this.$store.commit("setToken", token);
+        });
+
+        this.$store.dispatch("getCustomPresets");
+      }
     });
 
     ui.start("#firebaseui-auth-container", uiConfig);

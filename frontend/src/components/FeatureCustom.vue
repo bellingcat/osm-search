@@ -114,6 +114,7 @@ export default {
           type: this.selectedQueryType,
           filters: this.filters.filter((v) => v.parameter != ""),
           method: this.method,
+          unsavedCustomFeature: true,
         },
       ]);
 

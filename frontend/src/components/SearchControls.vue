@@ -3,7 +3,7 @@
     <v-row style="padding: 0.75em">
       <HelpCard />
     </v-row>
-    <feature-selector />
+    <FeatureSelector />
     <v-alert
       type="error"
       style="padding: 0.75em; margin-top: 1em"

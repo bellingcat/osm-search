@@ -2,6 +2,18 @@ import Vue from "vue";
 import Vuex from "vuex";
 import firebase from "firebase/compat/app";
 import "firebase/compat/auth";
+import { firebaseFirestore } from "@/firebase";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  where,
+  getDocs,
+  deleteDoc,
+  doc,
+} from "firebase/firestore";
+import queries from "@/assets/queries";
 
 Vue.use(Vuex);
 
@@ -25,10 +37,15 @@ export default new Vuex.Store({
     osmKeys: [],
     selectedKeyValues: [],
     user: null,
+    presets: queries,
+    customPresets: [],
   },
   mutations: {
     setUser(state, user) {
       state.user = user;
+    },
+    setToken(state, token) {
+      state.token = token;
     },
     updateSelected(state, value) {
       state.selected = [...value];
@@ -84,6 +101,9 @@ export default new Vuex.Store({
     setSelectedKeyValues(state, values) {
       state.selectedKeyValues = values;
     },
+    setCustomPresets(state, presets) {
+      state.customPresets = presets;
+    },
   },
   actions: {
     async signout({ commit }) {
@@ -93,6 +113,7 @@ export default new Vuex.Store({
 
         // clean user from store
         commit("setUser", null);
+        commit("setToken", null);
       } catch (error) {
         console.error("signOutUser (firebase/auth.js): ", error);
       }
@@ -188,6 +209,7 @@ export default new Vuex.Store({
           }
         });
     },
+
     searchLocation({ commit }, search_text) {
       fetch(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${search_text}.json?access_token=${process.env.VUE_APP_MAPBOX_TOKEN}`
@@ -215,6 +237,44 @@ export default new Vuex.Store({
             zoom,
           });
         });
+    },
+
+    async savePreset({ state, dispatch }, { index, name }) {
+      try {
+        const docRef = await addDoc(collection(firebaseFirestore, "presets"), {
+          filters: state.selected[index].filters,
+          method: state.selected[index].method,
+          type: state.selected[index].type,
+          name: name,
+          author_uid: state.user.uid,
+          timestamp: serverTimestamp(),
+        });
+
+        console.log("Document written with ID: ", docRef.id);
+
+        dispatch("getCustomPresets");
+      } catch (e) {
+        console.error("Error adding document: ", e);
+      }
+    },
+
+    async getCustomPresets({ state, commit }) {
+      const q = query(
+        collection(firebaseFirestore, "presets"),
+        where("author_uid", "==", state.user.uid)
+      );
+      const querySnapshot = await getDocs(q);
+
+      const customPresets = querySnapshot.docs.map((d) => ({
+        ...d.data(),
+        id: d.id,
+      }));
+      commit("setCustomPresets", customPresets);
+    },
+
+    async removePreset({ dispatch }, id) {
+      await deleteDoc(doc(firebaseFirestore, "presets", id));
+      dispatch("getCustomPresets");
     },
   },
   modules: {},

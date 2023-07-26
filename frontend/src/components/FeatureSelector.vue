@@ -30,24 +30,76 @@
       <v-card>
         <v-card-title>Feature presets</v-card-title>
         <v-card-text>
-          <v-chip
-            v-for="query in queries"
-            :key="query.name + query.type"
-            :color="
-              query.type == 'point'
-                ? '#8BC34A'
-                : query.type == 'line'
-                ? '#46d4db'
-                : query.type == 'polygon'
-                ? '#FFC107'
-                : '#BEBEBE'
-            "
-            draggable
-            @dragstart="startDrag($event, query)"
-            style="margin: 0.25em"
-            @click="addFeature(query)"
-            >{{ query.name }}</v-chip
-          >
+          <div>
+            <v-chip
+              v-for="query in $store.state.presets"
+              :key="query.name + query.type"
+              :color="
+                query.type == 'point'
+                  ? '#8BC34A'
+                  : query.type == 'line'
+                  ? '#46d4db'
+                  : query.type == 'polygon'
+                  ? '#FFC107'
+                  : '#BEBEBE'
+              "
+              draggable
+              @dragstart="startDrag($event, query)"
+              style="margin: 0.25em"
+              @click="addFeature(query)"
+              >{{ query.name }}</v-chip
+            >
+          </div>
+          <div v-if="$store.state.customPresets.length > 0">
+            <span class="custom-header">Custom presets</span>
+            <v-chip
+              v-for="query in $store.state.customPresets"
+              :key="query.id"
+              :color="
+                query.type == 'point'
+                  ? '#8BC34A'
+                  : query.type == 'line'
+                  ? '#46d4db'
+                  : query.type == 'polygon'
+                  ? '#FFC107'
+                  : '#BEBEBE'
+              "
+              draggable
+              @dragstart="startDrag($event, query)"
+              style="margin: 0.25em"
+              @click="addFeature(query)"
+              close
+              @click:close="deleteDialog = query"
+              >{{ query.name }}</v-chip
+            >
+          </div>
+          <v-dialog :value="deleteDialog" width="auto">
+            <v-card>
+              <v-card-title>Delete custom preset</v-card-title>
+              <v-card-text>
+                Are you sure you want to delete the custom preset "{{
+                  deleteDialog.name
+                }}" from your account?
+              </v-card-text>
+              <v-card-actions style="padding-bottom: 1em; margin-top: -0.5em">
+                <v-btn
+                  color="red"
+                  @click="
+                    removePreset(deleteDialog);
+                    deleteDialog = false;
+                  "
+                  >Delete</v-btn
+                >
+
+                <v-btn
+                  color="primary"
+                  style="margin-right: 0em; margin-left: auto"
+                  @click="deleteDialog = false"
+                  >Keep preset</v-btn
+                >
+              </v-card-actions>
+            </v-card>
+          </v-dialog>
         </v-card-text>
       </v-card>
       <FeatureCustom />
@@ -56,7 +108,6 @@
 </template>
 
 <script>
-import queries from "./queries.js";
 import FeatureView from "./FeatureView.vue";
 import FeatureCustom from "./FeatureCustom.vue";
 
@@ -68,8 +119,8 @@ export default {
   },
   data() {
     return {
-      queries,
       accepting: false,
+      deleteDialog: false,
     };
   },
   methods: {
@@ -94,6 +145,9 @@ export default {
     startDrag(e, item) {
       e.dataTransfer.setData("object", JSON.stringify(item));
     },
+    removePreset(f) {
+      this.$store.dispatch("removePreset", f.id);
+    },
   },
 };
 </script>
@@ -105,5 +159,12 @@ export default {
 
 .type {
   font-style: italic;
+}
+
+.custom-header {
+  font-weight: bold;
+  color: black;
+  margin-left: 0.5em;
+  margin-right: 0.5em;
 }
 </style>
