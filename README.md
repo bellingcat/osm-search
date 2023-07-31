@@ -36,6 +36,16 @@ The API requires environment variables for connection with Postgres.
 - `PG_USER`
 - `PG_PASSWORD`
 
+It also requires a Google Firebase service account credentials file, which must be named `service_account.json`.
+
 ### Running the frontend
 
-The frontend requires one environment variable, `VUE_APP_MAPBOX_TOKEN` to be set. This Mapbox key is used for geocoding queries.
+The frontend requires environment variables for Mapbox geocoding queries and for Firebase. These variables will be publicly viewable and built into the app.
+
+- `VUE_APP_MAPBOX_TOKEN`
+- `VUE_APP_FIREBASE_API_KEY`
+- `VUE_APP_FIREBASE_AUTH_DOMAIN`
+- `VUE_APP_FIREBASE_PROJECT_ID`
+- `VUE_APP_FIREBASE_STORAGE_BUCKET`
+- `VUE_APP_FIREBASE_MESSAGING_SENDER_ID`
+- `VUE_APP_FIREBASE_APP_ID`
