@@ -2,29 +2,26 @@ import os
 from dataclasses import dataclass
 from typing import Literal, TypedDict
 
-from pydantic import BaseModel, Json
+from pydantic import BaseModel, Field, Json
 from typing_extensions import NotRequired
 
 
 class Subfilter(BaseModel):
-    comparison: (
-        str
-        | Literal[
-            "=",
-            "!=",
-            ">",
-            "<",
-            ">=",
-            "<=",
-            "starts with",
-            "ends with",
-            "contains",
-            "does not contain",
-            "is null",
-            "is not null",
-        ]
-    )
-    parameter: str
+    comparison: Literal[
+        "=",
+        "!=",
+        ">",
+        "<",
+        ">=",
+        "<=",
+        "starts with",
+        "ends with",
+        "contains",
+        "does not contain",
+        "is null",
+        "is not null",
+    ]
+    parameter: str = Field(default_factory=str, pattern=r"^[a-zA-Z0-9_:]+$")
     value: str = ""
     cast: str | None = None
 
@@ -34,6 +31,7 @@ class Filter(BaseModel):
     method: Literal["AND", "OR"]
     type: Literal["point", "line", "polygon", "any"]
     filters: list[Subfilter]
+    unsavedCustomFeature: bool = False
 
 
 class RequestParams(BaseModel):

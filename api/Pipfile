@@ -9,11 +9,13 @@ flask-cors = "*"
 gunicorn = "*"
 loguru = "*"
 firebase-admin = "*"
-psycopg = {extras = ["c"], version = "*"}
+psycopg = {extras = ["c"] }
 pydantic = "*"
 
 [dev-packages]
 pre-commit = "*"
+mypy = "*"
+types-all = "*"
 
 [requires]
 python_version = "3.10"
