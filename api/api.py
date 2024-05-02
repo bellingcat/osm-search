@@ -169,7 +169,7 @@ def make_filter_query(filter: Filter):
                 parameter=sql.Literal(subfilter.parameter)
             )
 
-            if "cast" in subfilter and subfilter.cast in ALLOWED_CASTS:
+            if subfilter.cast is not None and subfilter.cast in ALLOWED_CASTS:
                 if subfilter.cast == "cast_to_float":
                     parameter = sql.SQL("cast_to_float({parameter}, 0.0)").format(
                         parameter=parameter
