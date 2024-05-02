@@ -321,7 +321,7 @@ def get_intersection() -> tuple[Response, Literal[400]] | Response:
         ).format(query=query, index=sql.Literal(i), buffer=sql.Literal(buffer))
 
     query = sql.SQL("{query} LIMIT {limit} OFFSET {offset}").format(
-        query=query, limit=sql.Literal(100)
+        query=query, limit=sql.Literal(params.limit), offset=sql.Literal(params.offset)
     )
 
     conn: psycopg.Connection = get_db_connection()

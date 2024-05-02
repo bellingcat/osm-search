@@ -41,6 +41,8 @@ class RequestParams(BaseModel):
     b: float
     r: float
     t: float
+    limit: int = 100
+    offset: int = 0
 
 
 @dataclass
