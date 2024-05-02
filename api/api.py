@@ -189,16 +189,16 @@ def make_filter_query(filter: Filter):
 
             if subfilter.comparison == "starts with":
                 subfilter.value = f"{subfilter.value}%"
-                subfilter.comparison = "ILIKE"
+                subfilter.comparison = "ILIKE"  # type: ignore
             elif subfilter.comparison == "ends with":
                 subfilter.value = f"%{subfilter.value}"
-                subfilter.comparison = "ILIKE"
+                subfilter.comparison = "ILIKE"  # type: ignore
             elif subfilter.comparison == "contains":
                 subfilter.value = f"%{subfilter.value}%"
-                subfilter.comparison = "ILIKE"
+                subfilter.comparison = "ILIKE"  # type: ignore
             elif subfilter.comparison == "does not contain":
                 subfilter.value = f"%{subfilter.value}%"
-                subfilter.comparison = "NOT ILIKE"
+                subfilter.comparison = "NOT ILIKE"  # type: ignore
 
             filter_query = sql.SQL(
                 "{filter_query} ({parameter} {comparison} {value})"
@@ -211,7 +211,7 @@ def make_filter_query(filter: Filter):
 
         if i != len(filter.filters) - 1:
             filter_query = sql.SQL("{filter_query} {method}").format(
-                filter_query=filter_query, method=sql.SQL(filter["method"])
+                filter_query=filter_query, method=sql.SQL(filter.method)
             )
 
         i += 1
@@ -260,83 +260,85 @@ def get_intersection() -> tuple[Response, Literal[400]] | Response:
         top=sql.Literal(bbox.t),
     )
 
-    first: Filter = filters[0]
-
-    first_query: sql.Composed = sql.SQL(
-        "SELECT tags->'name' AS name, ST_Centroid(way) AS point_geom, way AS geom FROM {table}"
+    envelope_cte: sql.Composed = sql.SQL(
+        "WITH envelope AS (SELECT ST_Transform(ST_MakeEnvelope({left}, {bottom}, {right}, {top}, 4326), 3857) AS geom)"
     ).format(
-        table=(
-            sql.SQL("planet_osm_line")
-            if first.type == "line"
-            else (
-                sql.SQL("planet_osm_polygon")
-                if first.type == "polygon"
-                else (
-                    sql.SQL("planet_osm_point")
-                    if first.type == "point"
-                    else sql.SQL("planet_osm")
-                )
-            )
-        )
+        left=sql.Literal(bbox.l),
+        bottom=sql.Literal(bbox.b),
+        right=sql.Literal(bbox.r),
+        top=sql.Literal(bbox.t),
     )
-    first_filter: sql.Composed | sql.Sql = make_filter_query(first)
-    first_assembled: sql.Composed = sql.SQL("{query} WHERE ({filter}) {bbox}").format(
-        query=first_query, filter=first_filter, bbox=bbox_filter
+
+    first: Filter = filters.pop(0)
+    match first.type:
+        case "point":
+            main_table = sql.SQL("planet_osm_point")
+        case "line":
+            main_table = sql.SQL("planet_osm_line")
+        case "polygon":
+            main_table = sql.SQL("planet_osm_polygon")
+        case "any":
+            main_table = sql.SQL("planet_osm")
+
+    initial_subtable = sql.SQL(
+        """initial_table AS (SELECT tags->'name' AS name, ST_Transform(ST_Centroid(way), 4326) AS point_geom, way AS geom FROM {main_table}, envelope WHERE ({filter}) AND (way && envelope.geom))"""
+    ).format(main_table=main_table, filter=make_filter_query(first), bbox=bbox_filter)
+
+    query = sql.SQL("{envelope_cte}, {initial_subtable}").format(
+        envelope_cte=envelope_cte, initial_subtable=initial_subtable
     )
 
     logger.info(f"Buffer: {buffer}\tFilters: {filters}\tBbox: {str(bbox)}")
 
-    subqueries: list[sql.Composed] = []
-    for f in filters[1:]:
+    for i, f in enumerate(filters):
         filter = make_filter_query(f)
 
-        if f.type == "point":
-            source_query = sql.SQL("SELECT way AS geom FROM planet_osm_point")
-        elif f.type == "line":
-            source_query = sql.SQL("SELECT way AS geom FROM planet_osm_line")
-        elif f.type == "polygon":
-            source_query = sql.SQL("SELECT way AS geom FROM planet_osm_polygon")
-        elif f.type == "any":
-            source_query = sql.SQL("SELECT way AS geom FROM planet_osm")
+        match f.type:
+            case "point":
+                source_table = sql.SQL("planet_osm_point")
+            case "line":
+                source_table = sql.SQL("planet_osm_line")
+            case "polygon":
+                source_table = sql.SQL("planet_osm_polygon")
+            case "any":
+                source_table = sql.SQL("planet_osm")
 
-        assembled: sql.Composed = sql.SQL("{query} WHERE ({filter}) {bbox}").format(
-            query=source_query, filter=filter, bbox=bbox_filter
-        )
-        subqueries.append(assembled)
+        assembled: sql.Composed = sql.SQL(
+            """subquery{index} AS (SELECT way AS geom FROM {source_table}, envelope WHERE ({filter}) AND (way && envelope.geom))"""
+        ).format(index=sql.SQL(str(i)), source_table=source_table, filter=filter)
 
-    join_query: sql.Composed = sql.SQL(
-        "SELECT DISTINCT point_geom, name, ST_Y(ST_Transform(point_geom, 4326)) AS lat, ST_X(ST_Transform(point_geom, 4326)) as lng FROM ({point}) point "
-    ).format(point=first_assembled)
+        query = sql.SQL("{query}, {assembled}").format(query=query, assembled=assembled)
 
-    i = 0
-    for q in subqueries:
-        join_query = sql.SQL(
-            "{join_query} JOIN ({q}) {subindex} ON ST_DWithin(point.geom, {subindex}.geom, {buffer})"
-        ).format(
-            join_query=join_query,
-            q=q,
-            subindex=sql.SQL("subquery" + str(i)),
-            buffer=sql.Literal(buffer),
-        )
-        i += 1
+    select_statement = sql.SQL(
+        "SELECT DISTINCT point_geom, name, ST_Y(point_geom) AS lat, ST_X(point_geom) AS lng FROM initial_table"
+    )
+    query = sql.SQL("{query} {select_statement}").format(
+        query=query, select_statement=select_statement
+    )
+    for i in range(len(filters)):
+        query = sql.SQL(
+            "{query} JOIN subquery{index} ON ST_DWithin(initial_table.geom, subquery{index}.geom, {buffer})"
+        ).format(query=query, index=sql.Literal(i), buffer=sql.Literal(buffer))
 
-    join_query = sql.SQL("{join_query} LIMIT 100").format(join_query=join_query)
+    query = sql.SQL("{query} LIMIT {limit} OFFSET {offset}").format(
+        query=query, limit=sql.Literal(100)
+    )
 
     conn: psycopg.Connection = get_db_connection()
 
-    logger.info(f"Executing query: {join_query.as_string(conn)}")
+    logger.info(f"Executing query: {query.as_string(conn)}")
 
-    timestamp: int = time.time_ns()
+    timestamp: int = time.time_ns()  # type: ignore
     user = get_user(request)
 
     try:
-        data, tdiff = query_with_timing(join_query)
+        data, tdiff = query_with_timing(query)
     except Timeout:
         return Response(status=408)
 
     log_data = {
         "timestamp": firestore.SERVER_TIMESTAMP,
-        "query": join_query.as_string(conn),
+        "query": query.as_string(conn),
         "user_uid": user["uid"],
         "user_email": user["email"],
         "bbox": list(bbox),
