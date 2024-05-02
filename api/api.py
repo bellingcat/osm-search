@@ -1,18 +1,20 @@
-import json
 import math
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
+from typing import Literal
 
 import firebase_admin
 import psycopg
+from api_types import Bbox, Filter, RequestParams, Timeout
 from firebase_admin import auth, credentials, firestore
-from flask import Flask, Response, jsonify, request
+from flask import Flask, Request, Response, jsonify, request
 from flask_cors import CORS
 from loguru import logger
 from psycopg import sql
 from psycopg.rows import dict_row
+from pydantic import ValidationError
 
 cred = credentials.Certificate("service_account.json")
 firebase_app = firebase_admin.initialize_app(cred)
@@ -43,7 +45,7 @@ ALLOWED_METHODS = ["OR", "AND"]
 ALLOWED_CASTS = ["integer", "float", "cast_to_int", "cast_to_float"]
 
 
-def get_db_connection():
+def get_db_connection() -> psycopg.Connection:
     conn = psycopg.connect(
         database=os.environ.get("PG_DB"),
         host=os.environ.get("PG_HOST"),
@@ -54,22 +56,24 @@ def get_db_connection():
     return conn
 
 
-def query_with_timing(query, conn=None):
+def query_with_timing(
+    query, conn: psycopg.Connection | None = None
+) -> tuple[list[dict], timedelta]:
     if conn is None:
         conn = get_db_connection()
 
-    cur = conn.cursor(row_factory=dict_row)
+    cur: psycopg.Cursor = conn.cursor(row_factory=dict_row)
 
     cur.execute("SET SESSION statement_timeout = '100s';")
 
-    t1 = datetime.now()
+    t1: datetime = datetime.now()
     try:
         cur.execute(query)
     except psycopg.errors.QueryCanceled:
         logger.warning("Request timed out")
-        return Response(status=400)
+        raise Timeout()
 
-    data = cur.fetchall()
+    data: list[dict] = cur.fetchall()
     cur.close()
     conn.close()
 
@@ -81,7 +85,7 @@ def query_with_timing(query, conn=None):
     return (data, t2 - t1)
 
 
-def get_user(request):
+def get_user(request: Request):
     token = None
 
     if "Authorization" in request.headers:
@@ -132,73 +136,73 @@ def token_required(f):
     return decorated
 
 
-def make_filter_query(filter):
+def make_filter_query(filter: Filter):
     filter_query = sql.SQL("")
 
     i = 0
 
-    for subfilter in filter["filters"]:
-        if subfilter["comparison"] not in ALLOWED_COMPARISONS:
-            logger.error(f"Invalid comparison {subfilter['comparison']}")
+    for subfilter in filter.filters:
+        if subfilter.comparison not in ALLOWED_COMPARISONS:
+            logger.error(f"Invalid comparison {subfilter.comparison}")
             break
 
-        if subfilter["comparison"] == "=":
+        if subfilter.comparison == "=":
             filter_query = sql.SQL("{filter_query} (tags @> {match})").format(
                 filter_query=filter_query,
-                match=sql.Literal(subfilter["parameter"] + "=>" + subfilter["value"]),
+                match=sql.Literal(subfilter.parameter + "=>" + subfilter.value),
             )
-        elif subfilter["comparison"] == "!=":
+        elif subfilter.comparison == "!=":
             filter_query = sql.SQL("{filter_query} NOT(tags @> {match})").format(
                 filter_query=filter_query,
-                match=sql.Literal(subfilter["parameter"] + "=>" + subfilter["value"]),
+                match=sql.Literal(subfilter.parameter + "=>" + subfilter.value),
             )
-        elif subfilter["comparison"] == "is null":
+        elif subfilter.comparison == "is null":
             filter_query = sql.SQL("{filter_query} NOT(tags?{parameter})").format(
-                filter_query=filter_query, parameter=sql.Literal(subfilter["parameter"])
+                filter_query=filter_query, parameter=sql.Literal(subfilter.parameter)
             )
-        elif subfilter["comparison"] == "is not null":
+        elif subfilter.comparison == "is not null":
             filter_query = sql.SQL("{filter_query} (tags?{parameter})").format(
-                filter_query=filter_query, parameter=sql.Literal(subfilter["parameter"])
+                filter_query=filter_query, parameter=sql.Literal(subfilter.parameter)
             )
         else:
             parameter = sql.SQL("tags->{parameter}").format(
-                parameter=sql.Literal(subfilter["parameter"])
+                parameter=sql.Literal(subfilter.parameter)
             )
 
-            if "cast" in subfilter and subfilter["cast"] in ALLOWED_CASTS:
-                if subfilter["cast"] == "cast_to_float":
+            if "cast" in subfilter and subfilter.cast in ALLOWED_CASTS:
+                if subfilter.cast == "cast_to_float":
                     parameter = sql.SQL("cast_to_float({parameter}, 0.0)").format(
                         parameter=parameter
                     )
-                elif subfilter["cast"] == "cast_to_int":
+                elif subfilter.cast == "cast_to_int":
                     parameter = sql.SQL("cast_to_int({parameter}, 0)").format(
                         parameter=parameter
                     )
                 else:
                     parameter = sql.SQL("CAST({parameter} AS {cast})").format(
-                        parameter=parameter, cast=sql.SQL(subfilter["cast"])
+                        parameter=parameter, cast=sql.SQL(subfilter.cast)
                     )
 
-            if subfilter["comparison"] == "starts with":
-                subfilter["value"] = f"{subfilter['value']}%"
-                subfilter["comparison"] = "ILIKE"
-            elif subfilter["comparison"] == "ends with":
-                subfilter["value"] = f"%{subfilter['value']}"
-                subfilter["comparison"] = "ILIKE"
-            elif subfilter["comparison"] == "contains":
-                subfilter["value"] = f"%{subfilter['value']}%"
-                subfilter["comparison"] = "ILIKE"
-            elif subfilter["comparison"] == "does not contain":
-                subfilter["value"] = f"%{subfilter['value']}%"
-                subfilter["comparison"] = "NOT ILIKE"
+            if subfilter.comparison == "starts with":
+                subfilter.value = f"{subfilter.value}%"
+                subfilter.comparison = "ILIKE"
+            elif subfilter.comparison == "ends with":
+                subfilter.value = f"%{subfilter.value}"
+                subfilter.comparison = "ILIKE"
+            elif subfilter.comparison == "contains":
+                subfilter.value = f"%{subfilter.value}%"
+                subfilter.comparison = "ILIKE"
+            elif subfilter.comparison == "does not contain":
+                subfilter.value = f"%{subfilter.value}%"
+                subfilter.comparison = "NOT ILIKE"
 
             filter_query = sql.SQL(
                 "{filter_query} ({parameter} {comparison} {value})"
             ).format(
                 filter_query=filter_query,
                 parameter=parameter,
-                comparison=sql.SQL(subfilter["comparison"]),
-                value=sql.Literal(subfilter["value"]),
+                comparison=sql.SQL(subfilter.comparison),
+                value=sql.Literal(subfilter.value),
             )
 
         if i != len(filter["filters"]) - 1:
@@ -213,24 +217,30 @@ def make_filter_query(filter):
 
 @app.route("/intersection")
 @token_required
-def get_intersection():
-    args = request.args
+def get_intersection() -> tuple[Response, Literal[400]] | Response:
+    try:
+        params = RequestParams(
+            buffer=request.args.get("buffer"),
+            filters=request.args.get("filters"),
+            l=request.args.get("l"),
+            b=request.args.get("b"),
+            r=request.args.get("r"),
+            t=request.args.get("t"),
+        )
+    except ValidationError as e:
+        # Handle errors in a way that fits your API design
+        return jsonify({"error": "Invalid data", "details": e.errors()}), 400
 
-    buffer = int(args.get("buffer"))
-    filters = json.loads(args.get("filters"))
+    buffer: int = params.buffer
+    filters: list[Filter] = params.filters
 
-    l = float(args.get("l"))
-    b = float(args.get("b"))
-    r = float(args.get("r"))
-    t = float(args.get("t"))
+    bbox: Bbox = Bbox(params.l, params.b, params.r, params.t)
 
-    bbox = [l, b, r, t]
-
-    area = (
+    area: float = (
         math.pow(6371, 2)
         * math.pi
-        * abs(math.sin(math.radians(t)) - math.sin(math.radians(b)))
-        * abs(r - l)
+        * abs(math.sin(math.radians(bbox.t)) - math.sin(math.radians(bbox.b)))
+        * abs(bbox.r - bbox.l)
         / 180
     )
 
@@ -238,18 +248,18 @@ def get_intersection():
     if area > 4e6:
         return Response(status=400)
 
-    bbox_filter = sql.SQL(
+    bbox_filter: sql.Composed = sql.SQL(
         "AND (way && ST_Transform(ST_MakeEnvelope({left}, {bottom}, {right}, {top}, 4326), 3857))"
     ).format(
-        left=sql.Literal(bbox[0]),
-        bottom=sql.Literal(bbox[1]),
-        right=sql.Literal(bbox[2]),
-        top=sql.Literal(bbox[3]),
+        left=sql.Literal(bbox.l),
+        bottom=sql.Literal(bbox.b),
+        right=sql.Literal(bbox.r),
+        top=sql.Literal(bbox.t),
     )
 
-    first = filters[0]
+    first: Filter = filters[0]
 
-    first_query = sql.SQL(
+    first_query: sql.Composed = sql.SQL(
         "SELECT tags->'name' AS name, ST_Centroid(way) AS point_geom, way AS geom FROM {table}"
     ).format(
         table=(
@@ -266,32 +276,32 @@ def get_intersection():
             )
         )
     )
-    first_filter = make_filter_query(first)
-    first_assembled = sql.SQL("{query} WHERE ({filter}) {bbox}").format(
+    first_filter: sql.Composed | sql.Sql = make_filter_query(first)
+    first_assembled: sql.Composed = sql.SQL("{query} WHERE ({filter}) {bbox}").format(
         query=first_query, filter=first_filter, bbox=bbox_filter
     )
 
-    logger.info(f"Buffer: {buffer}\tFilters: {filters}\tBbox: [{l},{b},{r},{t}]")
+    logger.info(f"Buffer: {buffer}\tFilters: {filters}\tBbox: {str(bbox)}")
 
-    subqueries = []
+    subqueries: list[sql.Composed] = []
     for f in filters[1:]:
         filter = make_filter_query(f)
 
-        if f["type"] == "point":
-            query = sql.SQL("SELECT way AS geom FROM planet_osm_point")
-        elif f["type"] == "line":
-            query = sql.SQL("SELECT way AS geom FROM planet_osm_line")
-        elif f["type"] == "polygon":
-            query = sql.SQL("SELECT way AS geom FROM planet_osm_polygon")
-        elif f["type"] == "any":
-            query = sql.SQL("SELECT way AS geom FROM planet_osm")
+        if f.type == "point":
+            source_query = sql.SQL("SELECT way AS geom FROM planet_osm_point")
+        elif f.type == "line":
+            source_query = sql.SQL("SELECT way AS geom FROM planet_osm_line")
+        elif f.type == "polygon":
+            source_query = sql.SQL("SELECT way AS geom FROM planet_osm_polygon")
+        elif f.type == "any":
+            source_query = sql.SQL("SELECT way AS geom FROM planet_osm")
 
-        assembled = sql.SQL("{query} WHERE ({filter}) {bbox}").format(
-            query=query, filter=filter, bbox=bbox_filter
+        assembled: sql.Composed = sql.SQL("{query} WHERE ({filter}) {bbox}").format(
+            query=source_query, filter=filter, bbox=bbox_filter
         )
         subqueries.append(assembled)
 
-    join_query = sql.SQL(
+    join_query: sql.Composed = sql.SQL(
         "SELECT DISTINCT point_geom, name, ST_Y(ST_Transform(point_geom, 4326)) AS lat, ST_X(ST_Transform(point_geom, 4326)) as lng FROM ({point}) point "
     ).format(point=first_assembled)
 
@@ -309,21 +319,24 @@ def get_intersection():
 
     join_query = sql.SQL("{join_query} LIMIT 100").format(join_query=join_query)
 
-    conn = get_db_connection()
+    conn: psycopg.Connection = get_db_connection()
 
     logger.info(f"Executing query: {join_query.as_string(conn)}")
 
-    timestamp = time.time_ns()
+    timestamp: int = time.time_ns()
     user = get_user(request)
 
-    data, tdiff = query_with_timing(join_query)
+    try:
+        data, tdiff = query_with_timing(join_query)
+    except Timeout:
+        return Response(status=408)
 
     log_data = {
         "timestamp": firestore.SERVER_TIMESTAMP,
         "query": join_query.as_string(conn),
         "user_uid": user["uid"],
         "user_email": user["email"],
-        "bbox": bbox,
+        "bbox": list(bbox),
         "filters": filters,
         "query_time": tdiff.total_seconds(),
         "query_nresults": len(data),
@@ -338,7 +351,7 @@ def get_intersection():
 
 
 @app.route("/robots.txt")
-def robots():
+def robots() -> Response:
     return Response("User-agent: *\nDisallow: /", mimetype="text/plain")
 
 
