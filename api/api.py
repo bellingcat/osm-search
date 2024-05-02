@@ -6,7 +6,14 @@ from typing import Literal
 
 import firebase_admin
 import psycopg
-from api_types import Bbox, Filter, PostgresConfig, RequestParams, Timeout
+from api_types import (
+    Bbox,
+    Filter,
+    PostgresConfig,
+    RequestParams,
+    RetrievedData,
+    Timeout,
+)
 from firebase_admin import auth, credentials, firestore
 from flask import Flask, Request, Response, jsonify, request
 from flask_cors import CORS
@@ -47,18 +54,15 @@ ALLOWED_CASTS = ["integer", "float", "cast_to_int", "cast_to_float"]
 def get_db_connection() -> psycopg.Connection:
     db_config = PostgresConfig()
     conn = psycopg.connect(
-        database=db_config.database,
-        host=db_config.host,
-        port=db_config.port,
-        user=db_config.user,
-        password=db_config.password,
+        f"dbname={db_config.database} user={db_config.user} password={db_config.password} host={db_config.host} port={db_config.port}"
     )
+
     return conn
 
 
 def query_with_timing(
     query, conn: psycopg.Connection | None = None
-) -> tuple[list[dict], timedelta]:
+) -> tuple[list[RetrievedData], timedelta]:
     if conn is None:
         conn = get_db_connection()
 
@@ -73,14 +77,14 @@ def query_with_timing(
         logger.warning("Request timed out")
         raise Timeout()
 
-    data: list[dict] = cur.fetchall()
+    data: list[RetrievedData] = cur.fetchall()
     cur.close()
     conn.close()
 
     t2 = datetime.now()
 
     for d in data:
-        d.pop("point_geom")
+        del d["point_geom"]
 
     return (data, t2 - t1)
 
@@ -205,7 +209,7 @@ def make_filter_query(filter: Filter):
                 value=sql.Literal(subfilter.value),
             )
 
-        if i != len(filter["filters"]) - 1:
+        if i != len(filter.filters) - 1:
             filter_query = sql.SQL("{filter_query} {method}").format(
                 filter_query=filter_query, method=sql.SQL(filter["method"])
             )
@@ -228,7 +232,6 @@ def get_intersection() -> tuple[Response, Literal[400]] | Response:
             t=request.args.get("t"),
         )
     except ValidationError as e:
-        # Handle errors in a way that fits your API design
         return jsonify({"error": "Invalid data", "details": e.errors()}), 400
 
     buffer: int = params.buffer
@@ -264,13 +267,13 @@ def get_intersection() -> tuple[Response, Literal[400]] | Response:
     ).format(
         table=(
             sql.SQL("planet_osm_line")
-            if first["type"] == "line"
+            if first.type == "line"
             else (
                 sql.SQL("planet_osm_polygon")
-                if first["type"] == "polygon"
+                if first.type == "polygon"
                 else (
                     sql.SQL("planet_osm_point")
-                    if first["type"] == "point"
+                    if first.type == "point"
                     else sql.SQL("planet_osm")
                 )
             )

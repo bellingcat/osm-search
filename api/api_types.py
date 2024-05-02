@@ -1,8 +1,9 @@
 import os
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, TypedDict
 
 from pydantic import BaseModel, Json
+from typing_extensions import NotRequired
 
 
 class Subfilter(BaseModel):
@@ -24,11 +25,13 @@ class Subfilter(BaseModel):
         ]
     )
     parameter: str
-    value: str
+    value: str = ""
     cast: str | None = None
 
 
 class Filter(BaseModel):
+    name: str
+    method: Literal["AND", "OR"]
     type: Literal["point", "line", "polygon", "any"]
     filters: list[Subfilter]
 
@@ -72,3 +75,10 @@ class PostgresConfig:
 
 class Timeout(Exception):
     pass
+
+
+class RetrievedData(TypedDict):
+    name: str
+    lat: float
+    lng: float
+    point_geom: NotRequired[str]
