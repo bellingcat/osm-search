@@ -1,5 +1,4 @@
 import math
-import os
 import time
 from datetime import datetime, timedelta
 from functools import wraps
@@ -7,7 +6,7 @@ from typing import Literal
 
 import firebase_admin
 import psycopg
-from api_types import Bbox, Filter, RequestParams, Timeout
+from api_types import Bbox, Filter, PostgresConfig, RequestParams, Timeout
 from firebase_admin import auth, credentials, firestore
 from flask import Flask, Request, Response, jsonify, request
 from flask_cors import CORS
@@ -46,12 +45,13 @@ ALLOWED_CASTS = ["integer", "float", "cast_to_int", "cast_to_float"]
 
 
 def get_db_connection() -> psycopg.Connection:
+    db_config = PostgresConfig()
     conn = psycopg.connect(
-        database=os.environ.get("PG_DB"),
-        host=os.environ.get("PG_HOST"),
-        port=os.environ.get("PG_PORT"),
-        user=os.environ.get("PG_USER"),
-        password=os.environ.get("PG_PASSWORD"),
+        database=db_config.database,
+        host=db_config.host,
+        port=db_config.port,
+        user=db_config.user,
+        password=db_config.password,
     )
     return conn
 

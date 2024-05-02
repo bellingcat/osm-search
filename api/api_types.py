@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass
 from typing import Literal
 
@@ -52,6 +53,20 @@ class Bbox:
 
     def __iter__(self):
         return iter([self.l, self.b, self.r, self.t])
+
+
+@dataclass
+class PostgresConfig:
+    database: str = os.environ.get("PG_DB", "")
+    host: str = os.environ.get("PG_HOST", "")
+    port: str = os.environ.get("PG_PORT", "")
+    user: str = os.environ.get("PG_USER", "")
+    password: str = os.environ.get("PG_PASSWORD", "")
+
+    def __post_init__(self):
+        for key, value in self.__dict__.items():
+            if value is None:
+                raise ValueError(f"Missing environment variable: {key}")
 
 
 class Timeout(Exception):
