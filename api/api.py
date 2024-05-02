@@ -1,19 +1,18 @@
-from psycopg2 import sql
-import psycopg2
-from psycopg2.extras import RealDictCursor
-from flask import Flask, request, jsonify, abort, Response
-from flask_cors import CORS
 import json
-from functools import wraps
-import os
-from loguru import logger
-from datetime import datetime
 import math
-import firebase_admin
-from firebase_admin import credentials
-from firebase_admin import auth
-from firebase_admin import firestore
+import os
 import time
+from datetime import datetime
+from functools import wraps
+
+import firebase_admin
+import psycopg
+from firebase_admin import auth, credentials, firestore
+from flask import Flask, Response, jsonify, request
+from flask_cors import CORS
+from loguru import logger
+from psycopg import sql
+from psycopg.rows import dict_row
 
 cred = credentials.Certificate("service_account.json")
 firebase_app = firebase_admin.initialize_app(cred)
@@ -45,7 +44,7 @@ ALLOWED_CASTS = ["integer", "float", "cast_to_int", "cast_to_float"]
 
 
 def get_db_connection():
-    conn = psycopg2.connect(
+    conn = psycopg.connect(
         database=os.environ.get("PG_DB"),
         host=os.environ.get("PG_HOST"),
         port=os.environ.get("PG_PORT"),
@@ -59,14 +58,14 @@ def query_with_timing(query, conn=None):
     if conn is None:
         conn = get_db_connection()
 
-    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur = conn.cursor(row_factory=dict_row)
 
     cur.execute("SET SESSION statement_timeout = '100s';")
 
     t1 = datetime.now()
     try:
         cur.execute(query)
-    except psycopg2.errors.QueryCanceled:
+    except psycopg.errors.QueryCanceled:
         logger.warning("Request timed out")
         return Response(status=400)
 
@@ -77,9 +76,10 @@ def query_with_timing(query, conn=None):
     t2 = datetime.now()
 
     for d in data:
-        d.pop('point_geom')
+        d.pop("point_geom")
 
     return (data, t2 - t1)
+
 
 def get_user(request):
     token = None
@@ -252,13 +252,19 @@ def get_intersection():
     first_query = sql.SQL(
         "SELECT tags->'name' AS name, ST_Centroid(way) AS point_geom, way AS geom FROM {table}"
     ).format(
-        table=sql.SQL("planet_osm_line")
-        if first["type"] == "line"
-        else sql.SQL("planet_osm_polygon")
-        if first["type"] == "polygon"
-        else sql.SQL("planet_osm_point")
-        if first["type"] == "point"
-        else sql.SQL("planet_osm")
+        table=(
+            sql.SQL("planet_osm_line")
+            if first["type"] == "line"
+            else (
+                sql.SQL("planet_osm_polygon")
+                if first["type"] == "polygon"
+                else (
+                    sql.SQL("planet_osm_point")
+                    if first["type"] == "point"
+                    else sql.SQL("planet_osm")
+                )
+            )
+        )
     )
     first_filter = make_filter_query(first)
     first_assembled = sql.SQL("{query} WHERE ({filter}) {bbox}").format(
