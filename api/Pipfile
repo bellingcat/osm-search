@@ -5,12 +5,14 @@ name = "pypi"
 
 [packages]
 flask = "*"
-psycopg2 = "*"
 flask-cors = "*"
 gunicorn = "*"
 loguru = "*"
+firebase-admin = "*"
+psycopg = {extras = ["c"], version = "*"}
 
 [dev-packages]
+pre-commit = "*"
 
 [requires]
 python_version = "3.10"
