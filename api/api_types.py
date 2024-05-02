@@ -25,6 +25,7 @@ class Subfilter(BaseModel):
     )
     parameter: str
     value: str
+    cast: str | None = None
 
 
 class Filter(BaseModel):
