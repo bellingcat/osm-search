@@ -45,3 +45,5 @@ repos:
     rev: v1.10.0
     hooks:
     -   id: mypy
+        language: system
+        entry: PIPENV_FILE=api/Pipenv.lock pipenv run mypy
