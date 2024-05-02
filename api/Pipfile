@@ -10,6 +10,7 @@ gunicorn = "*"
 loguru = "*"
 firebase-admin = "*"
 psycopg = {extras = ["c"], version = "*"}
+pydantic = "*"
 
 [dev-packages]
 pre-commit = "*"
