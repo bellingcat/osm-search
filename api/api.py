@@ -21,84 +21,18 @@ from psycopg import sql
 from psycopg.rows import dict_row
 from pydantic import ValidationError
 
+# Firebase initialization
 cred = credentials.Certificate("service_account.json")
 firebase_app = firebase_admin.initialize_app(cred)
 db = firestore.client()
 
+# Flask initialization
 app = Flask(__name__)
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 CORS(app)
 
-ALLOWED_COMPARISONS = [
-    "=",
-    "!=",
-    ">",
-    "<",
-    ">=",
-    "<=",
-    "starts with",
-    "ends with",
-    "contains",
-    "does not contain",
-    "is null",
-    "is not null",
-]
-
-ALLOWED_METHODS = ["OR", "AND"]
-
 ALLOWED_CASTS = ["integer", "float", "cast_to_int", "cast_to_float"]
-
-
-def get_db_connection() -> psycopg.Connection:
-    db_config = PostgresConfig()
-    conn = psycopg.connect(
-        f"dbname={db_config.database} user={db_config.user} password={db_config.password} host={db_config.host} port={db_config.port}"
-    )
-
-    return conn
-
-
-def query_with_timing(
-    query, conn: psycopg.Connection | None = None
-) -> tuple[list[RetrievedData], timedelta]:
-    if conn is None:
-        conn = get_db_connection()
-
-    cur: psycopg.Cursor = conn.cursor(row_factory=dict_row)
-
-    cur.execute("SET SESSION statement_timeout = '100s';")
-
-    t1: datetime = datetime.now()
-    try:
-        cur.execute(query)
-    except psycopg.errors.QueryCanceled:
-        logger.warning("Request timed out")
-        raise Timeout()
-
-    data: list[RetrievedData] = cur.fetchall()
-    cur.close()
-    conn.close()
-
-    t2 = datetime.now()
-
-    for d in data:
-        del d["point_geom"]
-
-    return (data, t2 - t1)
-
-
-def get_user(request: Request):
-    token = None
-
-    if "Authorization" in request.headers:
-        token = request.headers["Authorization"].split(" ")[1]
-
-    if not token:
-        return None
-
-    idinfo = auth.verify_id_token(token)
-    return idinfo
 
 
 def token_required(f):
@@ -139,16 +73,101 @@ def token_required(f):
     return decorated
 
 
-def make_where_statement(filter: Filter):
+def get_user(request: Request):
+    token = None
+
+    if "Authorization" in request.headers:
+        token = request.headers["Authorization"].split(" ")[1]
+
+    if not token:
+        return None
+
+    idinfo = auth.verify_id_token(token)
+    return idinfo
+
+
+def get_db_connection() -> psycopg.Connection:
+    db_config = PostgresConfig()
+    conn = psycopg.connect(
+        f"dbname={db_config.database} user={db_config.user} password={db_config.password} host={db_config.host} port={db_config.port}"
+    )
+
+    return conn
+
+
+def query_with_timing(
+    query, conn: psycopg.Connection | None = None
+) -> tuple[list[RetrievedData], timedelta]:
+    if conn is None:
+        conn = get_db_connection()
+
+    cur: psycopg.Cursor = conn.cursor(row_factory=dict_row)
+
+    cur.execute("SET SESSION statement_timeout = '100s';")
+
+    t1: datetime = datetime.now()
+    try:
+        cur.execute(query)
+    except psycopg.errors.QueryCanceled:
+        logger.warning("Request timed out")
+        raise Timeout()
+
+    data: list[RetrievedData] = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    t2 = datetime.now()
+
+    for d in data:
+        del d["point_geom"]
+
+    return (data, t2 - t1)
+
+
+def log_query(
+    request: Request,
+    query_string: str,
+    bbox: Bbox,
+    filters: list[Filter],
+    tdiff: timedelta,
+    data: list[RetrievedData],
+):
+    timestamp: int = time.time_ns()  # type: ignore
+    user: dict | None = get_user(request)
+
+    log_data = {
+        "timestamp": firestore.SERVER_TIMESTAMP,
+        "query": query_string,
+        "user_uid": user["uid"] if user else None,
+        "user_email": user["email"] if user else None,
+        "bbox": list(bbox),
+        "filters": [dict(f) for f in filters],
+        "query_time": tdiff.total_seconds(),
+        "query_nresults": len(data),
+        "query_results": data,
+    }
+
+    db.collection("searches").document(str(timestamp)).set(log_data)
+
+
+def get_source_table(f: Filter) -> sql.Composed:
+    match f.type:
+        case "point":
+            return sql.SQL("planet_osm_point")
+        case "line":
+            return sql.SQL("planet_osm_line")
+        case "polygon":
+            return sql.SQL("planet_osm_polygon")
+        case "any":
+            return sql.SQL("planet_osm")
+
+
+def build_where_statement(filter: Filter):
     filter_query = sql.SQL("")
 
     i = 0
 
     for subfilter in filter.filters:
-        if subfilter.comparison not in ALLOWED_COMPARISONS:
-            logger.error(f"Invalid comparison {subfilter.comparison}")
-            break
-
         if subfilter.comparison == "=":
             filter_query = sql.SQL("{filter_query} (tags @> {match})").format(
                 filter_query=filter_query,
@@ -218,25 +237,16 @@ def make_where_statement(filter: Filter):
     return filter_query
 
 
-def get_table_name(f: Filter) -> sql.Composed:
-    match f.type:
-        case "point":
-            return sql.SQL("planet_osm_point")
-        case "line":
-            return sql.SQL("planet_osm_line")
-        case "polygon":
-            return sql.SQL("planet_osm_polygon")
-        case "any":
-            return sql.SQL("planet_osm")
-
-
-def build_cte(f: Filter, index: int) -> sql.Composed:
-    source_table = get_table_name(f)
-    filter_query = make_where_statement(f)
+def build_cte_from_filter(f: Filter, id: sql.SQL) -> sql.Composed:
+    source_table = get_source_table(f)
+    filter_query = build_where_statement(f)
 
     assembled: sql.Composed = sql.SQL(
-        """subquery{index} AS (SELECT way AS geom FROM {source_table}, envelope WHERE ({filter}) AND (way && envelope.geom))"""
-    ).format(index=sql.SQL(str(index)), source_table=source_table, filter=filter_query)
+        """{id} AS (SELECT
+        way AS geom
+        FROM {source_table}, envelope
+        WHERE ({filter}) AND (way && envelope.geom))"""
+    ).format(id=id, source_table=source_table, filter=filter_query)
     return assembled
 
 
@@ -245,17 +255,10 @@ def build_query(
 ) -> sql.Composed:
     logger.info(f"Buffer: {buffer}\tFilters: {filters}\tBbox: {str(bbox)}")
 
-    bbox_filter: sql.Composed = sql.SQL(
-        "AND (way && ST_Transform(ST_MakeEnvelope({left}, {bottom}, {right}, {top}, 4326), 3857))"
-    ).format(
-        left=sql.Literal(bbox.l),
-        bottom=sql.Literal(bbox.b),
-        right=sql.Literal(bbox.r),
-        top=sql.Literal(bbox.t),
-    )
-
     envelope_cte: sql.Composed = sql.SQL(
-        "WITH envelope AS (SELECT ST_Transform(ST_MakeEnvelope({left}, {bottom}, {right}, {top}, 4326), 3857) AS geom)"
+        """WITH envelope AS (
+            SELECT ST_Transform(ST_MakeEnvelope({left}, {bottom}, {right}, {top}, 4326), 3857) AS geom
+        )"""
     ).format(
         left=sql.Literal(bbox.l),
         bottom=sql.Literal(bbox.b),
@@ -264,31 +267,38 @@ def build_query(
     )
 
     first: Filter = filters.pop(0)
-    source_table = get_table_name(first)
+    source_table = get_source_table(first)
     initial_cte = sql.SQL(
-        """initial_table AS (SELECT tags->'name' AS name, ST_Transform(ST_Centroid(way), 4326) AS point_geom, way AS geom FROM {main_table}, envelope WHERE ({filter}) AND (way && envelope.geom))"""
-    ).format(
-        main_table=source_table, filter=make_where_statement(first), bbox=bbox_filter
-    )
+        """initial_table AS (
+            SELECT
+                tags->'name' AS name,
+                ST_Transform(ST_Centroid(way), 4326) AS point_geom,
+                way AS geom
+            FROM {main_table}, envelope
+            WHERE ({filter}) AND (way && envelope.geom))"""
+    ).format(main_table=source_table, filter=build_where_statement(first))
 
-    additional_cte_list: list[sql.Composed] = []
+    additional_cte_list: list[tuple[sql.Composed, sql.Composed]] = []
     for i, f in enumerate(filters):
-        additional_cte_list.append(build_cte(f, i))
+        cte_id = sql.SQL("subquery{index}").format(index=sql.SQL(str(i)))
+        additional_cte_list.append((cte_id, build_cte_from_filter(f, cte_id)))
 
     query = sql.SQL(
         "{envelope_cte}, {ctes} {select_statement} {join_staments} {pagination}"
     ).format(
         envelope_cte=envelope_cte,
-        ctes=sql.SQL(", ").join([initial_cte, *additional_cte_list]),
+        ctes=sql.SQL(", ").join(
+            [initial_cte, *[cte_sql for cte_id, cte_sql in additional_cte_list]]
+        ),
         select_statement=sql.SQL(
             "SELECT DISTINCT point_geom, name, ST_Y(point_geom) AS lat, ST_X(point_geom) AS lng FROM initial_table"
         ),
         join_staments=sql.SQL(" ").join(
             [
                 sql.SQL(
-                    "JOIN subquery{index} ON ST_DWithin(initial_table.geom, subquery{index}.geom, {buffer})"
-                ).format(index=sql.Literal(i), buffer=sql.Literal(buffer))
-                for i in range(len(filters))
+                    "JOIN {cte_id} ON ST_DWithin(initial_table.geom, {cte_id}.geom, {buffer})"
+                ).format(cte_id=cte_id, buffer=sql.Literal(buffer))
+                for cte_id, cte_sql in additional_cte_list
             ]
         ),
         pagination=sql.SQL("LIMIT {limit} OFFSET {offset}").format(
@@ -297,32 +307,6 @@ def build_query(
     )
 
     return query
-
-
-def log_query(
-    request: Request,
-    query_string: str,
-    bbox: Bbox,
-    filters: list[Filter],
-    tdiff: timedelta,
-    data: list[RetrievedData],
-):
-    timestamp: int = time.time_ns()  # type: ignore
-    user: dict | None = get_user(request)
-
-    log_data = {
-        "timestamp": firestore.SERVER_TIMESTAMP,
-        "query": query_string,
-        "user_uid": user["uid"] if user else None,
-        "user_email": user["email"] if user else None,
-        "bbox": list(bbox),
-        "filters": [dict(f) for f in filters],
-        "query_time": tdiff.total_seconds(),
-        "query_nresults": len(data),
-        "query_results": data,
-    }
-
-    db.collection("searches").document(str(timestamp)).set(log_data)
 
 
 @app.route("/intersection")
