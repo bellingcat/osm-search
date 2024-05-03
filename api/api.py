@@ -140,7 +140,7 @@ def token_required(f):
     return decorated
 
 
-def make_filter_query(filter: Filter):
+def make_where_statement(filter: Filter):
     filter_query = sql.SQL("")
 
     i = 0
@@ -219,6 +219,113 @@ def make_filter_query(filter: Filter):
     return filter_query
 
 
+def get_table_name(f: Filter) -> sql.Composed:
+    match f.type:
+        case "point":
+            return sql.SQL("planet_osm_point")
+        case "line":
+            return sql.SQL("planet_osm_line")
+        case "polygon":
+            return sql.SQL("planet_osm_polygon")
+        case "any":
+            return sql.SQL("planet_osm")
+
+
+def build_cte(f: Filter, index: int) -> sql.Composed:
+    source_table = get_table_name(f)
+    filter_query = make_where_statement(f)
+
+    assembled: sql.Composed = sql.SQL(
+        """subquery{index} AS (SELECT way AS geom FROM {source_table}, envelope WHERE ({filter}) AND (way && envelope.geom))"""
+    ).format(index=sql.SQL(str(index)), source_table=source_table, filter=filter_query)
+    return assembled
+
+
+def build_query(
+    filters: list[Filter], bbox: Bbox, buffer: int, limit: int, offset: int
+) -> sql.Composed:
+    logger.info(f"Buffer: {buffer}\tFilters: {filters}\tBbox: {str(bbox)}")
+
+    bbox_filter: sql.Composed = sql.SQL(
+        "AND (way && ST_Transform(ST_MakeEnvelope({left}, {bottom}, {right}, {top}, 4326), 3857))"
+    ).format(
+        left=sql.Literal(bbox.l),
+        bottom=sql.Literal(bbox.b),
+        right=sql.Literal(bbox.r),
+        top=sql.Literal(bbox.t),
+    )
+
+    envelope_cte: sql.Composed = sql.SQL(
+        "WITH envelope AS (SELECT ST_Transform(ST_MakeEnvelope({left}, {bottom}, {right}, {top}, 4326), 3857) AS geom)"
+    ).format(
+        left=sql.Literal(bbox.l),
+        bottom=sql.Literal(bbox.b),
+        right=sql.Literal(bbox.r),
+        top=sql.Literal(bbox.t),
+    )
+
+    first: Filter = filters.pop(0)
+    source_table = get_table_name(first)
+    initial_cte = sql.SQL(
+        """initial_table AS (SELECT tags->'name' AS name, ST_Transform(ST_Centroid(way), 4326) AS point_geom, way AS geom FROM {main_table}, envelope WHERE ({filter}) AND (way && envelope.geom))"""
+    ).format(
+        main_table=source_table, filter=make_where_statement(first), bbox=bbox_filter
+    )
+
+    additional_cte_list: list[sql.Composed] = []
+    for i, f in enumerate(filters):
+        additional_cte_list.append(build_cte(f, i))
+
+    query = sql.SQL(
+        "{envelope_cte}, {ctes} {select_statement} {join_staments} {pagination}"
+    ).format(
+        envelope_cte=envelope_cte,
+        ctes=sql.SQL(", ").join([initial_cte, *additional_cte_list]),
+        select_statement=sql.SQL(
+            "SELECT DISTINCT point_geom, name, ST_Y(point_geom) AS lat, ST_X(point_geom) AS lng FROM initial_table"
+        ),
+        join_staments=sql.SQL(" ").join(
+            [
+                sql.SQL(
+                    "JOIN subquery{index} ON ST_DWithin(initial_table.geom, subquery{index}.geom, {buffer})"
+                ).format(index=sql.Literal(i), buffer=sql.Literal(buffer))
+                for i in range(len(filters))
+            ]
+        ),
+        pagination=sql.SQL("LIMIT {limit} OFFSET {offset}").format(
+            limit=sql.Literal(limit), offset=sql.Literal(offset)
+        ),
+    )
+
+    return query
+
+
+def log_query(
+    request: Request,
+    query_string: str,
+    bbox: Bbox,
+    filters: list[Filter],
+    tdiff: timedelta,
+    data: list[RetrievedData],
+):
+    timestamp: int = time.time_ns()  # type: ignore
+    user: dict | None = get_user(request)
+
+    log_data = {
+        "timestamp": firestore.SERVER_TIMESTAMP,
+        "query": query_string,
+        "user_uid": user["uid"] if user else None,
+        "user_email": user["email"] if user else None,
+        "bbox": list(bbox),
+        "filters": [dict(f) for f in filters],
+        "query_time": tdiff.total_seconds(),
+        "query_nresults": len(data),
+        "query_results": data,
+    }
+
+    db.collection("searches").document(str(timestamp)).set(log_data)
+
+
 @app.route("/intersection")
 @token_required
 def get_intersection() -> tuple[Response, Literal[400]] | Response:
@@ -251,104 +358,18 @@ def get_intersection() -> tuple[Response, Literal[400]] | Response:
     if area > 4e6:
         return Response(status=400)
 
-    bbox_filter: sql.Composed = sql.SQL(
-        "AND (way && ST_Transform(ST_MakeEnvelope({left}, {bottom}, {right}, {top}, 4326), 3857))"
-    ).format(
-        left=sql.Literal(bbox.l),
-        bottom=sql.Literal(bbox.b),
-        right=sql.Literal(bbox.r),
-        top=sql.Literal(bbox.t),
-    )
-
-    envelope_cte: sql.Composed = sql.SQL(
-        "WITH envelope AS (SELECT ST_Transform(ST_MakeEnvelope({left}, {bottom}, {right}, {top}, 4326), 3857) AS geom)"
-    ).format(
-        left=sql.Literal(bbox.l),
-        bottom=sql.Literal(bbox.b),
-        right=sql.Literal(bbox.r),
-        top=sql.Literal(bbox.t),
-    )
-
-    first: Filter = filters.pop(0)
-    match first.type:
-        case "point":
-            main_table = sql.SQL("planet_osm_point")
-        case "line":
-            main_table = sql.SQL("planet_osm_line")
-        case "polygon":
-            main_table = sql.SQL("planet_osm_polygon")
-        case "any":
-            main_table = sql.SQL("planet_osm")
-
-    initial_subtable = sql.SQL(
-        """initial_table AS (SELECT tags->'name' AS name, ST_Transform(ST_Centroid(way), 4326) AS point_geom, way AS geom FROM {main_table}, envelope WHERE ({filter}) AND (way && envelope.geom))"""
-    ).format(main_table=main_table, filter=make_filter_query(first), bbox=bbox_filter)
-
-    query = sql.SQL("{envelope_cte}, {initial_subtable}").format(
-        envelope_cte=envelope_cte, initial_subtable=initial_subtable
-    )
-
-    logger.info(f"Buffer: {buffer}\tFilters: {filters}\tBbox: {str(bbox)}")
-
-    for i, f in enumerate(filters):
-        filter = make_filter_query(f)
-
-        match f.type:
-            case "point":
-                source_table = sql.SQL("planet_osm_point")
-            case "line":
-                source_table = sql.SQL("planet_osm_line")
-            case "polygon":
-                source_table = sql.SQL("planet_osm_polygon")
-            case "any":
-                source_table = sql.SQL("planet_osm")
-
-        assembled: sql.Composed = sql.SQL(
-            """subquery{index} AS (SELECT way AS geom FROM {source_table}, envelope WHERE ({filter}) AND (way && envelope.geom))"""
-        ).format(index=sql.SQL(str(i)), source_table=source_table, filter=filter)
-
-        query = sql.SQL("{query}, {assembled}").format(query=query, assembled=assembled)
-
-    select_statement = sql.SQL(
-        "SELECT DISTINCT point_geom, name, ST_Y(point_geom) AS lat, ST_X(point_geom) AS lng FROM initial_table"
-    )
-    query = sql.SQL("{query} {select_statement}").format(
-        query=query, select_statement=select_statement
-    )
-    for i in range(len(filters)):
-        query = sql.SQL(
-            "{query} JOIN subquery{index} ON ST_DWithin(initial_table.geom, subquery{index}.geom, {buffer})"
-        ).format(query=query, index=sql.Literal(i), buffer=sql.Literal(buffer))
-
-    query = sql.SQL("{query} LIMIT {limit} OFFSET {offset}").format(
-        query=query, limit=sql.Literal(params.limit), offset=sql.Literal(params.offset)
-    )
-
+    query = build_query(filters, bbox, buffer, params.limit, params.offset)
     conn: psycopg.Connection = get_db_connection()
 
-    logger.info(f"Executing query: {query.as_string(conn)}")
-
-    timestamp: int = time.time_ns()  # type: ignore
-    user = get_user(request)
+    query_string: str = query.as_string(conn)
+    logger.info(f"Executing query: {query_string}")
 
     try:
-        data, tdiff = query_with_timing(query)
+        data, tdiff = query_with_timing(query, conn=conn)
     except Timeout:
         return Response(status=408)
 
-    log_data = {
-        "timestamp": firestore.SERVER_TIMESTAMP,
-        "query": query.as_string(conn),
-        "user_uid": user["uid"],
-        "user_email": user["email"],
-        "bbox": list(bbox),
-        "filters": filters,
-        "query_time": tdiff.total_seconds(),
-        "query_nresults": len(data),
-        "query_results": data,
-    }
-
-    db.collection("searches").document(str(timestamp)).set(log_data)
+    log_query(request, query_string, bbox, filters, tdiff, data)
 
     logger.info(f"Found {len(data)} results in {tdiff} seconds")
 
