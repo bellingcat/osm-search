@@ -23,7 +23,7 @@ class Subfilter(BaseModel):
     ]
     parameter: str = Field(default_factory=str, pattern=r"^[a-zA-Z0-9_:]+$")
     value: str = ""
-    cast: str | None = None
+    cast: Literal["integer", "float", "cast_to_int", "cast_to_float"] | None = None
 
 
 class Filter(BaseModel):

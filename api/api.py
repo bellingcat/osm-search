@@ -32,8 +32,6 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 CORS(app)
 
-ALLOWED_CASTS = ["integer", "float", "cast_to_int", "cast_to_float"]
-
 
 def token_required(f):
     @wraps(f)
@@ -163,35 +161,30 @@ def get_source_table(f: Filter) -> sql.Composed:
 
 
 def build_where_statement(filter: Filter):
-    filter_query = sql.SQL("")
-
-    i = 0
-
+    subfilters_list: list[Filter] = []
     for subfilter in filter.filters:
         if subfilter.comparison == "=":
-            filter_query = sql.SQL("{filter_query} (tags @> {match})").format(
-                filter_query=filter_query,
+            filter_query = sql.SQL("(tags @> {match})").format(
                 match=sql.Literal(subfilter.parameter + "=>" + subfilter.value),
             )
         elif subfilter.comparison == "!=":
-            filter_query = sql.SQL("{filter_query} NOT(tags @> {match})").format(
-                filter_query=filter_query,
+            filter_query = sql.SQL("NOT(tags @> {match})").format(
                 match=sql.Literal(subfilter.parameter + "=>" + subfilter.value),
             )
         elif subfilter.comparison == "is null":
-            filter_query = sql.SQL("{filter_query} NOT(tags?{parameter})").format(
-                filter_query=filter_query, parameter=sql.Literal(subfilter.parameter)
+            filter_query = sql.SQL("NOT(tags?{parameter})").format(
+                parameter=sql.Literal(subfilter.parameter)
             )
         elif subfilter.comparison == "is not null":
-            filter_query = sql.SQL("{filter_query} (tags?{parameter})").format(
-                filter_query=filter_query, parameter=sql.Literal(subfilter.parameter)
+            filter_query = sql.SQL("(tags?{parameter})").format(
+                parameter=sql.Literal(subfilter.parameter)
             )
         else:
             parameter = sql.SQL("tags->{parameter}").format(
                 parameter=sql.Literal(subfilter.parameter)
             )
 
-            if subfilter.cast is not None and subfilter.cast in ALLOWED_CASTS:
+            if subfilter.cast is not None:
                 if subfilter.cast == "cast_to_float":
                     parameter = sql.SQL("cast_to_float({parameter}, 0.0)").format(
                         parameter=parameter
@@ -205,36 +198,32 @@ def build_where_statement(filter: Filter):
                         parameter=parameter, cast=sql.SQL(subfilter.cast)
                     )
 
-            if subfilter.comparison == "starts with":
-                subfilter.value = f"{subfilter.value}%"
-                subfilter.comparison = "ILIKE"  # type: ignore
-            elif subfilter.comparison == "ends with":
-                subfilter.value = f"%{subfilter.value}"
-                subfilter.comparison = "ILIKE"  # type: ignore
-            elif subfilter.comparison == "contains":
-                subfilter.value = f"%{subfilter.value}%"
-                subfilter.comparison = "ILIKE"  # type: ignore
+            if subfilter.comparison in ("starts with", "ends with", "contains"):
+                comparison = "ILIKE"
             elif subfilter.comparison == "does not contain":
-                subfilter.value = f"%{subfilter.value}%"
-                subfilter.comparison = "NOT ILIKE"  # type: ignore
+                comparison = "NOT ILIKE"
+            else:
+                comparison = subfilter.comparison
 
-            filter_query = sql.SQL(
-                "{filter_query} ({parameter} {comparison} {value})"
-            ).format(
-                filter_query=filter_query,
+            match subfilter.comparison:
+                case "starts with":
+                    value = f"{subfilter.value}%"
+                case "ends with":
+                    value = f"%{subfilter.value}"
+                case "contains" | "does not contain":
+                    value = f"%{subfilter.value}%"
+                case _:
+                    value = subfilter.value
+
+            filter_query = sql.SQL("({parameter} {comparison} {value})").format(
                 parameter=parameter,
-                comparison=sql.SQL(subfilter.comparison),
-                value=sql.Literal(subfilter.value),
+                comparison=sql.SQL(comparison),
+                value=sql.Literal(value),
             )
 
-        if i != len(filter.filters) - 1:
-            filter_query = sql.SQL("{filter_query} {method}").format(
-                filter_query=filter_query, method=sql.SQL(filter.method)
-            )
+        subfilters_list.append(filter_query)
 
-        i += 1
-
-    return filter_query
+    return sql.SQL(" {method} ").format(method=filter.method).join(subfilters_list)
 
 
 def build_cte_from_filter(f: Filter, id: sql.SQL) -> sql.Composed:
