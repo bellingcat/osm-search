@@ -2,7 +2,6 @@ import math
 import time
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Literal
 
 import firebase_admin
 import psycopg
@@ -328,7 +327,7 @@ def log_query(
 
 @app.route("/intersection")
 @token_required
-def get_intersection() -> tuple[Response, Literal[400]] | Response:
+def get_intersection() -> tuple[Response, int] | Response:
     try:
         params = RequestParams(
             buffer=request.args.get("buffer"),

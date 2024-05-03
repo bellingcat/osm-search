@@ -92,3 +92,7 @@ node_modules/
 
 # dotenv environment variables file
 .env
+
+# Python cache
+__pycache__
+.mypy_cache
