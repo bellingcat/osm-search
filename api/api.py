@@ -160,7 +160,7 @@ def get_source_table(f: Filter) -> sql.Composed:
             return sql.SQL("planet_osm")
 
 
-def build_where_statement(filter: Filter):
+def build_filter_query(filter: Filter):
     subfilters_list: list[Filter] = []
     for subfilter in filter.filters:
         if subfilter.comparison == "=":
@@ -228,7 +228,7 @@ def build_where_statement(filter: Filter):
 
 def build_cte_from_filter(f: Filter, id: sql.SQL) -> sql.Composed:
     source_table = get_source_table(f)
-    filter_query = build_where_statement(f)
+    filter_query = build_filter_query(f)
 
     assembled: sql.Composed = sql.SQL(
         """{id} AS (SELECT
@@ -265,7 +265,7 @@ def build_query(
                 way AS geom
             FROM {main_table}, envelope
             WHERE ({filter}) AND (way && envelope.geom))"""
-    ).format(main_table=source_table, filter=build_where_statement(first))
+    ).format(main_table=source_table, filter=build_filter_query(first))
 
     additional_cte_list: list[tuple[sql.Composed, sql.Composed]] = []
     for i, f in enumerate(filters):
