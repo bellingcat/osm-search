@@ -223,7 +223,12 @@ def build_filter_query(filter: Filter):
 
         subfilters_list.append(filter_query)
 
-    return sql.SQL(" {method} ").format(method=filter.method).join(subfilters_list)
+    if filter.method == "AND":
+        joiner = sql.SQL(" AND ")
+    else:
+        joiner = sql.SQL(" OR ")
+
+    return joiner.join(subfilters_list)
 
 
 def build_cte_from_filter(f: Filter, id: sql.SQL) -> sql.Composed:
