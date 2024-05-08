@@ -14,10 +14,9 @@ import {
   doc,
 } from "firebase/firestore";
 import queries from "@/assets/queries";
+import { bellingCatService } from "@/services/bellingcat.service";
 
 Vue.use(Vuex);
-
-const OSM_SEARCH_API = "https://api.osm-search.bellingcat.com";
 
 export default new Vuex.Store({
   state: {
@@ -39,6 +38,8 @@ export default new Vuex.Store({
     user: null,
     presets: queries,
     customPresets: [],
+    page: 0,
+    hasMore: false,
   },
   mutations: {
     setUser(state, user) {
@@ -46,6 +47,7 @@ export default new Vuex.Store({
     },
     setToken(state, token) {
       state.token = token;
+      bellingCatService.setToken(token);
     },
     updateSelected(state, value) {
       state.selected = [...value];
@@ -104,6 +106,12 @@ export default new Vuex.Store({
     setCustomPresets(state, presets) {
       state.customPresets = presets;
     },
+    setPage(state, page) {
+      state.page = page;
+    },
+    setHasMore(state, hasMore) {
+      state.hasMore = hasMore;
+    },
   },
   actions: {
     async signout({ commit }) {
@@ -117,6 +125,16 @@ export default new Vuex.Store({
       } catch (error) {
         console.error("signOutUser (firebase/auth.js): ", error);
       }
+    },
+
+    nextPage({ commit, state, dispatch }) {
+      commit("setPage", state.page + 1);
+      dispatch("search");
+    },
+
+    previousPage({ commit, state, dispatch }) {
+      commit("setPage", state.page - 1);
+      dispatch("search");
     },
 
     getKeys({ commit }) {
@@ -160,53 +178,24 @@ export default new Vuex.Store({
         });
     },
     search({ state, commit }) {
-      let bbox = state.bbox;
-      let range = state.range;
-      let filters = JSON.stringify(state.selected);
+      const bbox = state.bbox;
+      const range = state.range;
+      const filters = JSON.stringify(state.selected);
+      const page = state.page;
 
       commit("setLoading", true);
-
-      let time1 = performance.now();
-
-      fetch(
-        `${OSM_SEARCH_API}/intersection?l=${bbox[0][1]}&b=${bbox[0][0]}&r=${bbox[1][1]}&t=${bbox[1][0]}&buffer=${range}&filters=${filters}`,
-        {
-          headers: {
-            Authorization: "Bearer " + state.token,
-          },
-        }
-      )
-        .then((d) => {
-          if (d.status != 200) {
-            return Promise.reject(Error(d.status));
-          }
-          return d.json();
-        })
-        .then((data) => {
-          let time2 = performance.now();
-          commit("setResponseTime", time2 - time1);
+      bellingCatService
+        .search({ bbox, range, filters, page, prefetchNext: true })
+        .then(({ data, responseTime, hasMore }) => {
+          commit("setResponseTime", responseTime);
           commit("setSearchResults", data);
+          commit("setHasMore", hasMore);
           commit("setLoading", false);
           commit("setError", false);
         })
         .catch((e) => {
           commit("setLoading", false);
-          if (e.message == 400) {
-            commit("setLoading", false);
-            commit(
-              "setError",
-              "Your search area is too large, or your search timed out. Zoom in on a smaller area or change your search parameters."
-            );
-          } else if (e.message == 403) {
-            commit("setLoading", false);
-            commit("setError", "Your login has expired. Please log in again.");
-          } else {
-            commit("setLoading", false);
-            commit(
-              "setError",
-              "Search error. Check your custom features or email logan@bellingcat.com."
-            );
-          }
+          commit("setError", e);
         });
     },
 
@@ -276,6 +265,10 @@ export default new Vuex.Store({
       await deleteDoc(doc(firebaseFirestore, "presets", id));
       dispatch("getCustomPresets");
     },
+  },
+  getters: {
+    page: (state) => state.page,
+    hasMore: (state) => state.hasMore,
   },
   modules: {},
 });
