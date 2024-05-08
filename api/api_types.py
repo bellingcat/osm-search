@@ -42,7 +42,7 @@ class RequestParams(BaseModel):
     r: float
     t: float
     limit: int = 100
-    offset: int = 0
+    page: int = 0
 
 
 @dataclass

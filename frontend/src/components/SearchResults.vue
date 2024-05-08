@@ -2,14 +2,18 @@
   <v-container>
     <v-card :loading="$store.state.loading">
       <v-card-title>
-        {{
-          $store.state.searchResults.length == 100
-            ? "100 results of many"
-            : $store.state.searchResults.length + " total results"
-        }}
+        {{ "Page: " + ($store.state.page + 1) }}
+        {{ "Results: " + $store.state.searchResults.length }}
         <span class="timing">{{
           "in " + ($store.state.responseTime / 1000).toFixed(2) + " seconds"
         }}</span>
+        <v-spacer></v-spacer>
+        <v-btn icon @click="previous" :disabled="!canGoBack">
+          <v-icon>mdi-arrow-left-bold</v-icon>
+        </v-btn>
+        <v-btn icon @click="next" :disabled="!hasMore">
+          <v-icon>mdi-arrow-right-bold</v-icon>
+        </v-btn>
       </v-card-title>
       <v-card-text>
         <v-radio-group v-model="mode" row>
@@ -58,8 +62,20 @@ export default {
         this.$store.commit("setMode", mode);
       },
     },
+    hasMore() {
+      return this.$store.getters["hasMore"];
+    },
+    canGoBack() {
+      return this.$store.getters["page"] > 0;
+    },
   },
   methods: {
+    previous() {
+      this.$store.dispatch("previousPage");
+    },
+    next() {
+      this.$store.dispatch("nextPage");
+    },
     kml() {
       let features = this.$store.state.searchResults.map((f) => ({
         type: "Feature",
