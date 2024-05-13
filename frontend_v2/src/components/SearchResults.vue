@@ -25,7 +25,7 @@
         <div class="results">
           <v-row>
             <SearchResult
-              v-for="(result, i) in store.searchResults"
+              v-for="(result, i) in store.searchResults || []"
               :key="'result' + i"
               :result="result"
               :resultIndex="i"

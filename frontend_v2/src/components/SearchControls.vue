@@ -2,17 +2,28 @@
   <v-container>
     <HelpCard />
     <FeatureSelector />
-    <v-alert type="error" style="padding: 0.75em; margin-top: 1em" v-if="store.selected.length < 1">
+    <v-alert
+      type="error"
+      style="padding: 0.75em; margin-top: 1em"
+      v-if="store.selected.length < 1"
+    >
       Select at least one feature to begin a search.
     </v-alert>
     <v-row style="padding: 0.75em">
       <v-card style="width: 100%">
         <v-card-title>Maximum distance between features</v-card-title>
         <v-card-text>
-          <v-slider v-model="range" thumb-label="always" :thumb-size="36" :max="500"
-            style="margin-bottom: -1em; margin-top: 1em" label="Longer distance will take longer to search">
-
-            <template v-slot:thumb-label="{ value }"> {{ Math.round(range)}}m </template>
+          <v-slider
+            v-model="range"
+            thumb-label="always"
+            :thumb-size="36"
+            :max="500"
+            style="margin-bottom: -1em; margin-top: 1em"
+            label="Longer distance will take longer to search"
+          >
+            <template v-slot:thumb-label="{ value }">
+              {{ Math.round(range) }}m
+            </template>
           </v-slider>
         </v-card-text>
       </v-card>
@@ -20,37 +31,72 @@
     <v-row style="padding: 0.75em">
       <v-card style="width: 100%">
         <v-card-title>Search area</v-card-title>
-        <l-map v-model:zoom="zoom" :center="[47.41322, -1.219482]" style="width: 100%; height: 600px" ref="map"
-          :noBlockingAnimations="true">
+        <l-map
+          v-model:zoom="zoom"
+          :center="[48.41322, 7.219482]"
+          style="width: 100%; height: 600px"
+          ref="map"
+          :noBlockingAnimations="true"
+        >
           <l-tile-layer :url="url" />
-          <l-circle-marker v-for="(result, i) in store.searchResults" :lat-lng="[result.lat, result.lng]"
-            :key="'marker' + i" :radius="4" :color="
+          <l-circle-marker
+            v-for="(result, i) in store.searchResults"
+            :lat-lng="[result.lat, result.lng]"
+            :key="'marker' + i"
+            :radius="4"
+            :color="
               i == store.hovered
                 ? '#673AB7'
                 : i == store.selectedResult
                   ? '#E91E63'
                   : '#2196F3'
-            " @mouseover="store.setHoveredResult(i)" @mouseleave="store.setHoveredResult(null)" @click="mapClick(i)" />
-          <l-rectangle v-if="store.bbox.length > 0" :bounds="store.bbox" :fill="false" color="blue"
-            :weight="3"></l-rectangle>
+            "
+            @mouseover="store.setHoveredResult(i)"
+            @mouseleave="store.setHoveredResult(null)"
+            @click="mapClick(i)"
+          />
+          <l-rectangle
+            v-if="store.bbox.length > 0"
+            :bounds="store.bbox"
+            :fill="false"
+            color="blue"
+            :weight="3"
+          ></l-rectangle>
         </l-map>
         <div class="map-search">
-          <v-text-field variant="outlined" label="Find location" prepend-inner-icon="mdi-magnify"
-            @keypress.enter="searchLocation" v-model="locationSearch"></v-text-field>
+          <v-text-field
+            variant="outlined"
+            label="Find location"
+            prepend-inner-icon="mdi-magnify"
+            @keypress.enter="searchLocation"
+            v-model="locationSearch"
+          ></v-text-field>
         </div>
       </v-card>
     </v-row>
-    <v-alert type="error" style="padding: 0.75em; margin-top: 1em" v-if="zoom < 6">
+    <v-alert
+      type="error"
+      style="padding: 0.75em; margin-top: 1em"
+      v-if="zoom < 6"
+    >
       Your search area is too large. Zoom in to reduce the search area.
     </v-alert>
-    <v-alert type="warning" style="padding: 0.75em; margin-top: 1em" v-else-if="zoom < 8">
+    <v-alert
+      type="warning"
+      style="padding: 0.75em; margin-top: 1em"
+      v-else-if="zoom < 8"
+    >
       Your search area is very large. You can still run it, but the search may
       fail or take a long time to execute. Zoom in to reduce the search area.
     </v-alert>
     <v-row style="padding: 0.75em">
       <v-btn @click="search">Search</v-btn>
     </v-row>
-    <v-alert type="error" style="padding: 0.75em; margin-top: 1em" v-if="store.error">
+    <v-alert
+      type="error"
+      style="padding: 0.75em; margin-top: 1em"
+      v-if="store.error"
+    >
       {{ store.error }}
     </v-alert>
   </v-container>
@@ -69,9 +115,9 @@ import HelpCard from "./HelpCard.vue";
 import { useAppStore } from "@/stores/app";
 import { ref, computed, onMounted } from "vue";
 
-
 const locationSearch = ref("");
 const store = useAppStore();
+const map: any = ref(null);
 
 const range = computed({
   get() {
@@ -109,20 +155,24 @@ const url = computed(() => {
   }
 });
 
-function search() {
+async function search() {
   if (zoom.value < 6) {
     return;
   }
 
-  let bounds = this.$refs.map.mapObject.getBounds();
+  if (!map.value) {
+    return;
+  }
+
+  let bounds = map.value.leafletObject.getBounds();
 
   let bbox = [
     [bounds._southWest.lat, bounds._southWest.lng],
     [bounds._northEast.lat, bounds._northEast.lng],
   ];
 
-  store.setBbox(bbox);
-  storesearch();
+  await store.setBbox(bbox);
+  store.search();
 }
 function mapClick(i) {
   store.setSelectedResult(i);
@@ -133,7 +183,6 @@ function searchLocation() {
   store.searchLocation(locationSearch.value);
   locationSearch.value = "";
 }
-
 </script>
 
 <style scoped>
