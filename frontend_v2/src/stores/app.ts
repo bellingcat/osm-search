@@ -129,6 +129,10 @@ export const useAppStore = defineStore("app", {
     setPage(page) {
       this.page = page;
     },
+    removeResult(index) {
+      const newResults = this.searchResults.filter((_, i) => i !== index);
+      this.searchResults = newResults;
+    },
 
     async signout() {
       try {

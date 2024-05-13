@@ -3,12 +3,21 @@
     <v-card
       :id="'result' + index"
       class="result"
-      :color="hovered ? '#D1C4E9' : selected ? '#F48FB1' : '#FFFFFF'"
+      variant="outlined"
+      :color="hovered ? '#D1C4E9' : selected ? '#F48FB1' : ''"
       @mouseover="store.setHoveredResult(index)"
       @mouseleave="store.setHoveredResult(null)"
       @click="clicked"
     >
-      <v-card-title>{{ resultIndex + 1 }} </v-card-title>
+      <v-card-title>
+        <v-row>
+          {{ resultIndex + 1 }}
+          <v-spacer></v-spacer>
+          <v-btn icon @click="store.removeResult(index)">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-row>
+      </v-card-title>
       <v-card-subtitle>
         {{ result.name }}
       </v-card-subtitle>
@@ -37,11 +46,17 @@
 </template>
 
 <script setup lang="ts">
+import L from "leaflet";
 import { LMap, LTileLayer } from "@vue-leaflet/vue-leaflet";
 import { useAppStore } from "@/stores/app";
 import { computed } from "vue";
 
-defineProps(["result", "resultIndex", "mode", "index"]);
+const props = defineProps({
+  result: Object,
+  resultIndex: Number,
+  mode: String,
+  index: Number,
+});
 const store = useAppStore();
 
 const url = computed(() => {

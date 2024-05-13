@@ -1,8 +1,11 @@
 <template>
   <v-app>
     <v-app-bar style="flex-grow: 0" class="text-no-wrap">
-      <v-toolbar-title><router-link to="/" class="nodecoration">Bellingcat OpenStreetMap
-          search</router-link></v-toolbar-title>
+      <v-toolbar-title
+        ><router-link to="/" class="nodecoration"
+          >Bellingcat OpenStreetMap search</router-link
+        ></v-toolbar-title
+      >
       <v-spacer />
       <span class="user" v-if="user">
         {{ user.email }}
@@ -10,8 +13,8 @@
       <v-btn v-if="user" href="#" @click="store.signout()">Sign Out</v-btn>
     </v-app-bar>
 
-      <FirebaseLogin v-if="!user" class="mt-16" />
-      <router-view></router-view>
+    <FirebaseLogin v-if="!user" class="mt-16" />
+    <router-view></router-view>
 
     <v-footer class="legal">
       <router-link to="/privacy">Privacy Policy</router-link>
@@ -39,7 +42,7 @@ const user = computed(() => {
 <style>
 @font-face {
   font-family: GoogleSans;
-  src: url('~@/assets/fonts/GoogleSans-Regular.ttf');
+  src: url("~@/assets/fonts/GoogleSans-Regular.ttf");
 }
 body {
   font-family: GoogleSans, Helvetica, Arial, sans-serif;
