@@ -5,19 +5,19 @@
 // Read more: https://github.com/vuejs/core/pull/3399
 export {}
 
-declare module 'vue' {
+declare module "vue" {
   export interface GlobalComponents {
-    FeatureCustom: typeof import('./components/FeatureCustom.vue')['default']
-    FeatureSelector: typeof import('./components/FeatureSelector.vue')['default']
-    FeatureView: typeof import('./components/FeatureView.vue')['default']
-    FirebaseLogin: typeof import('./components/FirebaseLogin.vue')['default']
-    GoogleLogin: typeof import('./components/GoogleLogin.vue')['default']
-    HelloWorld: (typeof import("./src/components/HelloWorld.vue"))["default"]
-    HelpCard: typeof import('./components/HelpCard.vue')['default']
-    RouterLink: typeof import('vue-router')['RouterLink']
-    RouterView: typeof import('vue-router')['RouterView']
-    SearchControls: typeof import('./components/SearchControls.vue')['default']
-    SearchResult: typeof import('./components/SearchResult.vue')['default']
-    SearchResults: typeof import('./components/SearchResults.vue')['default']
+    FeatureCustom: (typeof import("./components/FeatureCustom.vue"))["default"];
+    FeatureSelector: (typeof import("./components/FeatureSelector.vue"))["default"];
+    FeatureView: (typeof import("./components/FeatureView.vue"))["default"];
+    FirebaseLogin: (typeof import("./components/FirebaseLogin.vue"))["default"];
+    GoogleLogin: (typeof import("./components/GoogleLogin.vue"))["default"];
+    HelloWorld: (typeof import("./src/components/HelloWorld.vue"))["default"];
+    HelpCard: (typeof import("./components/HelpCard.vue"))["default"];
+    RouterLink: (typeof import("vue-router"))["RouterLink"];
+    RouterView: (typeof import("vue-router"))["RouterView"];
+    SearchControls: (typeof import("./components/SearchControls.vue"))["default"];
+    SearchResult: (typeof import("./components/SearchResult.vue"))["default"];
+    SearchResults: (typeof import("./components/SearchResults.vue"))["default"];
   }
 }
