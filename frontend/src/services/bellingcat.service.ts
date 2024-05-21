@@ -1,5 +1,5 @@
 const PAGE_SIZE = 100;
-const OSM_SEARCH_API = "https://api.osm-search.bellingcat.com";
+const OSM_SEARCH_API = "http://localhost:5050"; //"https://api.osm-search.bellingcat.com";
 
 class BellingCatService {
   token: string | null;
@@ -40,7 +40,7 @@ class BellingCatService {
       const time1 = performance.now();
 
       fetch(
-        `${OSM_SEARCH_API}/intersection?l=${bbox[0][1]}&b=${bbox[0][0]}&r=${bbox[1][1]}&t=${bbox[1][0]}&buffer=${range}&filters=${filters}&limit=${PAGE_SIZE}&page=${page}`,
+        `${OSM_SEARCH_API}/intersection?l=${bbox[0][1]}&b=${bbox[0][0]}&r=${bbox[1][1]}&t=${bbox[1][0]}&buffer=${Math.round(range)}&filters=${filters}&limit=${PAGE_SIZE}&page=${page}`,
         {
           headers: {
             Authorization: "Bearer " + this.token,
@@ -56,7 +56,14 @@ class BellingCatService {
         .then(({ data, has_more }) => {
           const time2 = performance.now();
           const responseTime = time2 - time1;
-          const response = { responseTime, data, hasMore: has_more };
+          const response = {
+            responseTime,
+            data: data.map((item, index) => ({
+              ...item,
+              index: index + page * PAGE_SIZE,
+            })),
+            hasMore: has_more,
+          };
           if (has_more && prefetchNext) {
             setTimeout(() => {
               this.search({ bbox, range, filters, page: page + 1 });

@@ -7,13 +7,16 @@ export {}
 
 declare module "vue" {
   export interface GlobalComponents {
+    copy: (typeof import("./components/SearchControls copy.vue"))["default"];
     FeatureCustom: (typeof import("./components/FeatureCustom.vue"))["default"];
     FeatureSelector: (typeof import("./components/FeatureSelector.vue"))["default"];
     FeatureView: (typeof import("./components/FeatureView.vue"))["default"];
     FirebaseLogin: (typeof import("./components/FirebaseLogin.vue"))["default"];
     GoogleLogin: (typeof import("./components/GoogleLogin.vue"))["default"];
-    HelloWorld: (typeof import("./src/components/HelloWorld.vue"))["default"];
     HelpCard: (typeof import("./components/HelpCard.vue"))["default"];
+    LMapCircle: (typeof import("./components/LMapCircle.vue"))["default"];
+    MainMap: (typeof import("./components/MainMap.vue"))["default"];
+    MapMarker: (typeof import("./components/MapMarker.vue"))["default"];
     RouterLink: (typeof import("vue-router"))["RouterLink"];
     RouterView: (typeof import("vue-router"))["RouterView"];
     SearchControls: (typeof import("./components/SearchControls.vue"))["default"];

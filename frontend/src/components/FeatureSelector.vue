@@ -1,18 +1,20 @@
 <template>
-  <v-row>
-    <v-col>
+  <v-col class="pa-0 ma-0">
+    <v-card variant="flat">
+      <v-card-title>Selected features</v-card-title>
       <v-card
         @drop="onDrop"
         @dragover="onDragOver"
         @dragleave="onDragLeave"
-        :color="accepting ? '#ddd' : '#fff'"
+        :color="accepting ? '#ddd' : ''"
         style="min-height: 100%"
+        class="ma-4"
+        variant="tonal"
       >
-        <v-card-title>Selected features</v-card-title>
         <v-card-text>
-          <v-col v-if="$store.state.selected.length > 0">
+          <v-col v-if="store.selected.length > 0">
             <FeatureView
-              v-for="(query, i) in $store.state.selected"
+              v-for="(query, i) in store.selected"
               :key="query.name + query.type"
               :query="query"
               :index="i"
@@ -25,131 +27,132 @@
           </v-col>
         </v-card-text>
       </v-card>
-    </v-col>
-    <v-col>
-      <v-card>
-        <v-card-title>Feature presets</v-card-title>
-        <v-card-text>
-          <div>
-            <v-chip
-              v-for="query in $store.state.presets"
-              :key="query.name + query.type"
-              :color="
-                query.type == 'point'
-                  ? '#8BC34A'
-                  : query.type == 'line'
-                  ? '#46d4db'
-                  : query.type == 'polygon'
-                  ? '#FFC107'
-                  : '#BEBEBE'
-              "
-              draggable
-              @dragstart="startDrag($event, query)"
-              style="margin: 0.25em"
-              @click="addFeature(query)"
-              >{{ query.name }}</v-chip
-            >
-          </div>
-          <div v-if="$store.state.customPresets.length > 0">
-            <span class="custom-header">Custom presets</span>
-            <v-chip
-              v-for="query in $store.state.customPresets"
-              :key="query.id"
-              :color="
-                query.type == 'point'
-                  ? '#8BC34A'
-                  : query.type == 'line'
-                  ? '#46d4db'
-                  : query.type == 'polygon'
-                  ? '#FFC107'
-                  : '#BEBEBE'
-              "
-              draggable
-              @dragstart="startDrag($event, query)"
-              style="margin: 0.25em"
-              @click="addFeature(query)"
-              close
-              @click:close="deleteDialog = query"
-              >{{ query.name }}</v-chip
-            >
-          </div>
-          <v-dialog :value="deleteDialog" width="auto">
-            <v-card>
-              <v-card-title>Delete custom preset</v-card-title>
-              <v-card-text>
-                Are you sure you want to delete the custom preset "{{
-                  deleteDialog.name
-                }}" from your account?
-              </v-card-text>
-              <v-card-actions style="padding-bottom: 1em; margin-top: -0.5em">
-                <v-btn
-                  color="red"
-                  @click="
-                    removePreset(deleteDialog);
-                    deleteDialog = false;
-                  "
-                  >Delete</v-btn
-                >
+    </v-card>
 
-                <v-btn
-                  color="primary"
-                  style="margin-right: 0em; margin-left: auto"
-                  @click="deleteDialog = false"
-                  >Keep preset</v-btn
-                >
-              </v-card-actions>
-            </v-card>
-          </v-dialog>
+    <v-card variant="flat">
+      <v-card-title>Feature presets</v-card-title>
+      <v-card-text>
+        <div>
+          <v-chip
+            v-for="query in store.presets"
+            :key="query.name + query.type"
+            :color="
+              query.type == 'point'
+                ? '#8BC34A'
+                : query.type == 'line'
+                  ? '#46d4db'
+                  : query.type == 'polygon'
+                    ? '#FFC107'
+                    : '#BEBEBE'
+            "
+            draggable
+            @dragstart="startDrag($event, query)"
+            style="margin: 0.25em"
+            @click="addFeature(query)"
+            >{{ query.name }}</v-chip
+          >
+        </div>
+      </v-card-text>
+      <div v-if="store.customPresets.length > 0">
+        <v-card-title>Custom presets</v-card-title>
+        <v-card-text>
+          <v-chip
+            v-for="query in store.customPresets"
+            :key="query.id"
+            :color="
+              query.type == 'point'
+                ? '#8BC34A'
+                : query.type == 'line'
+                  ? '#46d4db'
+                  : query.type == 'polygon'
+                    ? '#FFC107'
+                    : '#BEBEBE'
+            "
+            draggable
+            @dragstart="startDrag($event, query)"
+            style="margin: 0.25em"
+            @click="addFeature(query)"
+          >
+            <template #close>
+              <v-icon
+                icon="mdi-close-circle"
+                @click.stop="customPresetToDelete = query"
+              />
+            </template>
+            {{ query.name }}</v-chip
+          >
         </v-card-text>
-      </v-card>
-      <FeatureCustom />
-    </v-col>
-  </v-row>
+      </div>
+      <v-dialog v-model="isDeleteDialogShown" width="auto">
+        <v-card v-if="isDeleteDialogShown">
+          <v-card-title>Delete custom preset</v-card-title>
+          <v-card-text>
+            Are you sure you want to delete the custom preset "{{
+              customPresetToDelete.name
+            }}" from your account?
+          </v-card-text>
+          <v-card-actions style="padding-bottom: 1em; margin-top: -0.5em">
+            <v-btn color="red" @click="removePreset(customPresetToDelete.id)"
+              >Delete</v-btn
+            >
+
+            <v-btn
+              color="primary"
+              style="margin-right: 0em; margin-left: auto"
+              @click="isDeleteDialogShown = false"
+              >Keep preset</v-btn
+            >
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+    </v-card>
+    <FeatureCustom />
+  </v-col>
 </template>
 
-<script>
-import FeatureView from "./FeatureView.vue";
-import FeatureCustom from "./FeatureCustom.vue";
+<script setup lang="ts">
+import { useAppStore } from "@/stores/app";
+import { computed, ref } from "vue";
 
-export default {
-  name: "FeatureSelector",
-  components: {
-    FeatureView,
-    FeatureCustom,
+const store = useAppStore();
+const accepting = ref(false);
+
+const customPresetToDelete = ref(null);
+const isDeleteDialogShown = computed({
+  get: () => {
+    return customPresetToDelete.value != null;
   },
-  data() {
-    return {
-      accepting: false,
-      deleteDialog: false,
-    };
+  set: (val) => {
+    if (val) {
+      return;
+    }
+
+    customPresetToDelete.value = null;
   },
-  methods: {
-    onDrop(e) {
-      this.accepting = false;
-      let data = JSON.parse(e.dataTransfer.getData("object"));
-      this.$store.commit("updateSelected", [
-        ...this.$store.state.selected,
-        data,
-      ]);
-    },
-    addFeature(f) {
-      this.$store.commit("updateSelected", [...this.$store.state.selected, f]);
-    },
-    onDragOver(e) {
-      this.accepting = true;
-      e.preventDefault();
-    },
-    onDragLeave() {
-      this.accepting = false;
-    },
-    startDrag(e, item) {
-      e.dataTransfer.setData("object", JSON.stringify(item));
-    },
-    removePreset(f) {
-      this.$store.dispatch("removePreset", f.id);
-    },
-  },
-};
+});
+
+function onDrop(e) {
+  accepting.value = false;
+  let data = JSON.parse(e.dataTransfer.getData("object"));
+  store.updateSelected([...store.selected, data]);
+}
+function addFeature(f) {
+  store.updateSelected([...store.selected, f]);
+}
+function onDragOver(e) {
+  accepting.value = true;
+  e.preventDefault();
+}
+function onDragLeave() {
+  accepting.value = false;
+}
+function startDrag(e, item) {
+  e.dataTransfer.setData("object", JSON.stringify(item));
+}
+function removePreset(f) {
+  store.removePreset(f);
+  isDeleteDialogShown.value = false;
+}
 </script>
 
 <style>
@@ -159,12 +162,5 @@ export default {
 
 .type {
   font-style: italic;
-}
-
-.custom-header {
-  font-weight: bold;
-  color: black;
-  margin-left: 0.5em;
-  margin-right: 0.5em;
 }
 </style>
