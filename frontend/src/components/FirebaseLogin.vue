@@ -2,44 +2,45 @@
   <section id="firebaseui-auth-container"></section>
 </template>
 
-<script>
+<script setup lang="ts">
 import firebase from "firebase/compat/app";
 import * as firebaseui from "firebaseui";
 import "firebaseui/dist/firebaseui.css";
 import "firebase/compat/auth";
-import { firebaseConfig } from "@/firebase.js";
+import { firebaseConfig } from "@/services/firebase";
+import { useAppStore } from "@/stores/app";
+import { onMounted } from "vue";
 
-export default {
-  name: "FirebaseLogin",
-  mounted() {
-    firebase.initializeApp(firebaseConfig);
+const store = useAppStore();
 
-    let ui = firebaseui.auth.AuthUI.getInstance();
-    if (!ui) {
-      ui = new firebaseui.auth.AuthUI(firebase.auth());
+onMounted(() => {
+  firebase.initializeApp(firebaseConfig);
+
+  let ui = firebaseui.auth.AuthUI.getInstance();
+  if (!ui) {
+    ui = new firebaseui.auth.AuthUI(firebase.auth());
+  }
+
+  let uiConfig = {
+    signInOptions: [
+      firebase.auth.GoogleAuthProvider.PROVIDER_ID,
+      firebase.auth.EmailAuthProvider.PROVIDER_ID,
+    ],
+  };
+
+  firebase.auth().onAuthStateChanged((user) => {
+    store.setUser(user);
+    if (user) {
+      user.getIdToken().then((token) => {
+        store.setToken(token);
+      });
+
+      store.getCustomPresets();
     }
+  });
 
-    let uiConfig = {
-      signInOptions: [
-        firebase.auth.GoogleAuthProvider.PROVIDER_ID,
-        firebase.auth.EmailAuthProvider.PROVIDER_ID,
-      ],
-    };
-
-    firebase.auth().onAuthStateChanged((user) => {
-      this.$store.commit("setUser", user);
-      if (user) {
-        user.getIdToken().then((token) => {
-          this.$store.commit("setToken", token);
-        });
-
-        this.$store.dispatch("getCustomPresets");
-      }
-    });
-
-    ui.start("#firebaseui-auth-container", uiConfig);
-  },
-};
+  ui.start("#firebaseui-auth-container", uiConfig);
+});
 </script>
 
 <style>

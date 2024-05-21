@@ -24,8 +24,6 @@ interface State {
   bbox: number[];
   error: boolean | string;
   range: number;
-  hovered: any | null;
-  selectedResult: any | null;
   mode: string;
   loading: boolean;
   token: boolean;
@@ -39,6 +37,7 @@ interface State {
   customPresets: any[];
   page: number;
   hasMore: boolean;
+  isHelpShown: boolean;
 }
 
 export const useAppStore = defineStore("app", {
@@ -48,13 +47,11 @@ export const useAppStore = defineStore("app", {
     bbox: [],
     error: false,
     range: 100,
-    hovered: null,
-    selectedResult: null,
     mode: "osm",
     loading: false,
     token: false,
-    mapCenter: [42.2, -71.7],
-    mapZoom: 8,
+    mapCenter: [48.41322, 8.219482], // [42.2, -71.7],
+    mapZoom: 13,
     responseTime: null,
     osmKeys: [],
     selectedKeyValues: [],
@@ -63,6 +60,7 @@ export const useAppStore = defineStore("app", {
     customPresets: [],
     page: 0,
     hasMore: false,
+    isHelpShown: false,
   }),
   actions: {
     setUser(user) {
@@ -93,10 +91,22 @@ export const useAppStore = defineStore("app", {
       this.range = range;
     },
     setHoveredResult(index) {
-      this.hovered = index;
+      for (let i = 0; i < this.searchResults.length; i++) {
+        if (this.searchResults[i].index == index) {
+          this.searchResults[i] = { ...this.searchResults[i], hovered: true };
+        } else if (this.searchResults[i].hovered) {
+          this.searchResults[i] = { ...this.searchResults[i], hovered: false };
+        }
+      }
     },
     setSelectedResult(index) {
-      this.selectedResult = index;
+      for (let i = 0; i < this.searchResults.length; i++) {
+        if (this.searchResults[i].index == index) {
+          this.searchResults[i] = { ...this.searchResults[i], selected: true };
+        } else if (this.searchResults[i].selected) {
+          this.searchResults[i] = { ...this.searchResults[i], selected: false };
+        }
+      }
     },
     setMode(mode) {
       this.mode = mode;
@@ -130,7 +140,9 @@ export const useAppStore = defineStore("app", {
       this.page = page;
     },
     removeResult(index) {
-      const newResults = this.searchResults.filter((_, i) => i !== index);
+      const newResults = this.searchResults.filter(
+        (item) => item.index !== index,
+      );
       this.searchResults = newResults;
     },
 
@@ -144,16 +156,6 @@ export const useAppStore = defineStore("app", {
       } catch (error) {
         console.error("signOutUser (firebase/auth.js): ", error);
       }
-    },
-
-    nextPage() {
-      this.page++;
-      this.search();
-    },
-
-    previousPage() {
-      this.page--;
-      this.search();
     },
 
     async getKeys() {
@@ -176,6 +178,17 @@ export const useAppStore = defineStore("app", {
     },
 
     async search() {
+      this.page = 0;
+      this.searchResults = [];
+      await this.fetchData();
+    },
+
+    async nextPage() {
+      this.page++;
+      await this.fetchData();
+    },
+
+    async fetchData() {
       const bbox = this.bbox;
       const range = this.range;
       const filters = JSON.stringify(this.selected);
@@ -191,7 +204,9 @@ export const useAppStore = defineStore("app", {
           prefetchNext: true,
         });
         this.responseTime = responseTime;
-        this.searchResults = data;
+        this.searchResults = this.searchResults.concat(
+          data.map((item) => ({ ...item, hovered: false, selected: false })),
+        );
         this.hasMore = hasMore;
         this.loading = false;
         this.error = false;
@@ -243,17 +258,21 @@ export const useAppStore = defineStore("app", {
     },
 
     async getCustomPresets() {
-      const q = query(
-        collection(firebaseFirestore, "presets"),
-        where("author_uid", "==", this.user.uid),
-      );
-      const querySnapshot = await getDocs(q);
+      try {
+        const q = query(
+          collection(firebaseFirestore, "presets"),
+          where("author_uid", "==", this.user.uid),
+        );
+        const querySnapshot = await getDocs(q);
 
-      const customPresets = querySnapshot.docs.map((d) => ({
-        ...d.data(),
-        id: d.id,
-      }));
-      this.customPresets = customPresets;
+        const customPresets = querySnapshot.docs.map((d) => ({
+          ...d.data(),
+          id: d.id,
+        }));
+        this.customPresets = customPresets;
+      } catch (e) {
+        console.error("Error getting documents: ", e);
+      }
     },
 
     async removePreset(id) {
