@@ -53,12 +53,9 @@ function toggleDarkMode() {
 </script>
 
 <style>
-@font-face {
-  font-family: GoogleSans;
-  src: url("~@/assets/fonts/GoogleSans-Regular.ttf");
-}
+
 body {
-  font-family: GoogleSans, Helvetica, Arial, sans-serif;
+  font-family: Helvetica, Arial, sans-serif;
 }
 
 .legal a {

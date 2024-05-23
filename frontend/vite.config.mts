@@ -44,7 +44,7 @@ export default defineConfig({
         configFile: "src/styles/settings.scss",
       },
     }),
-    Fonts({
+    /*Fonts({
       google: {
         families: [
           {
@@ -53,7 +53,7 @@ export default defineConfig({
           },
         ],
       },
-    }),
+    })*/,
   ],
   define: { "process.env": {} },
   resolve: {

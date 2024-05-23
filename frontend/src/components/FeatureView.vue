@@ -1,5 +1,5 @@
 <template>
-  <v-card close style="margin-bottom: 1em" variant="outlined" :color="color">
+  <v-card close style="margin-bottom: 1em;" variant="outlined" :color="color" density="compact">
     <v-card-title>
       {{ query.name }}&nbsp;
       <span class="type">({{ query.type }})</span>
@@ -8,30 +8,20 @@
       <div v-for="(f, i) in query.filters" :key="i">
         <div class="code">
           {{ (i == 0 ? "" : query.method + " ") + f.parameter
-          }}<a
-            :href="'https://wiki.openstreetmap.org/wiki/Key:' + f.parameter"
-            target="_blank"
-            class="super"
-          >
-            <v-icon x-small>mdi-open-in-new</v-icon></a
-          >
+          }}<a :href="'https://wiki.openstreetmap.org/wiki/Key:' + f.parameter" target="_blank" class="super">
+            <v-icon x-small>mdi-open-in-new</v-icon></a>
           {{ f.comparison }}
           {{
-            f.comparison == "is null" || f.comparison == "is not null"
-              ? ""
-              : f.value
+          f.comparison == "is null" || f.comparison == "is not null"
+          ? ""
+          : f.value
           }}
         </div>
       </div>
     </v-card-text>
     <v-card-actions>
       <v-btn color="red" text @click.stop="remove(index)"> Remove </v-btn>
-      <v-btn
-        color="blue"
-        v-if="query.unsavedCustomFeature"
-        text
-        @click="dialog = true"
-      >
+      <v-btn color="blue" v-if="query.unsavedCustomFeature" text @click="dialog = true">
         Save feature preset
       </v-btn>
     </v-card-actions>
@@ -40,28 +30,15 @@
         <v-card-title>Save this feature as a preset</v-card-title>
         <v-card-text>
           Your saved presets are only visible to you.
-          <v-text-field
-            label="Preset name"
-            required
-            v-model="name"
-            :error="error"
-          ></v-text-field>
+          <v-text-field label="Preset name" required v-model="name" :error="error"></v-text-field>
         </v-card-text>
         <v-card-actions style="padding-bottom: 1em; margin-top: -0.5em">
-          <v-btn
-            color="red"
-            @click="
+          <v-btn color="red" @click="
               dialog = false;
               error = false;
-            "
-            >Cancel</v-btn
-          >
-          <v-btn
-            color="primary"
-            style="margin-right: 0em; margin-left: auto"
-            @click="tryToSave(index)"
-            >Save preset</v-btn
-          >
+            ">Cancel</v-btn>
+          <v-btn color="primary" style="margin-right: 0em; margin-left: auto" @click="tryToSave(index)">Save
+            preset</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

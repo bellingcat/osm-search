@@ -1,6 +1,6 @@
 <template>
   <v-container>
-    <v-card :loading="store.loading" variant="flat">
+    <v-card variant="flat">
       <v-card-title> Results </v-card-title>
       <v-card-subtitle>
         {{ store.searchResults.length + (hasMore ? " (more available)" : "")
@@ -15,12 +15,15 @@
       </v-card-actions>
       <v-card-text>
         <v-card variant="outlined">
-          <v-virtual-scroll
-            :items="store.searchResults || []"
-            height="60vh"
-            key-field="index"
-            class="scroller"
-          >
+          <v-card v-if="store.loading" height="60vh">
+            <v-col style="height: 100%">
+              <v-row class="justify-center align-center" style="height: 100%">
+                <v-progress-circular indeterminate color="primary" size="100" class="mx-auto"></v-progress-circular>
+
+              </v-row>
+            </v-col>
+          </v-card> <v-virtual-scroll :items="store.searchResults || []" height="60vh" v-else key-field="index"
+            class="scroller">
             <template v-slot:default="{ item }">
               <SearchResult :result="item" />
             </template>
@@ -41,11 +44,22 @@
 <script setup lang="ts">
 import tokml from "tokml";
 import { saveAs } from "file-saver";
-import { mkConfig, generateCsv } from "export-to-csv";
+import { mkConfig, generateCsv, download } from "export-to-csv";
 import { useAppStore } from "@/stores/app";
 import { computed } from "vue";
 
 const store = useAppStore();
+const csvConfig = mkConfig({
+  fieldSeparator: ",",
+  quoteStrings: true,
+  quoteCharacter: '"',
+  decimalSeparator: ".",
+  showTitle: false,
+  useTextFile: false,
+  useBom: true,
+  useKeysAsHeaders: true,
+  filename: "osm-search",
+});
 
 const hasMore = computed(() => {
   return store.hasMore;
@@ -73,27 +87,15 @@ function kml() {
   );
 }
 function csv() {
-  const options = mkConfig({
-    fieldSeparator: ",",
-    quoteStrings: '"',
-    decimalSeparator: ".",
-    showLabels: true,
-    showTitle: false,
-    useTextFile: false,
-    useBom: true,
-    useKeysAsHeaders: true,
-    filename: "osm-search",
-  });
+  const data = store.searchResults.map(({ name, lat, lng }) => ({
+    name,
+    lat,
+    lng,
+  }))
 
-  const csvExporter = generateCsv(options);
+  const csvExporter = generateCsv(csvConfig);
 
-  csvExporter.generateCsv(
-    store.searchResults.map((f) => ({
-      name: f.name,
-      lat: f.lat,
-      lng: f.lng,
-    })),
-  );
+  download(csvConfig)(csvExporter(data));
 }
 </script>
 

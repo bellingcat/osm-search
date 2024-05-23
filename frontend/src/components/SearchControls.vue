@@ -13,18 +13,18 @@
             <v-slider
               v-model="range"
               thumb-label="always"
-              :thumb-size="36"
               :max="500"
-              class="mb-1 mt-12"
+              step="1"
+              class="mb-1 mt-4"
             >
               <template>
-                {{ Math.round(range) }}m
+                {{ range }}m
               </template>
             </v-slider>
           </v-card-text>
         </v-card>
       </v-row>
-      <v-row class="justify-center my-8">
+      <v-row class="justify-center mt-0 mb-6">
         <v-btn
           @click="search"
           size="x-large"
