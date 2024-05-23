@@ -5,7 +5,8 @@
 <script setup lang="ts">
 import firebase from "firebase/compat/app";
 import * as firebaseui from "firebaseui";
-import "firebaseui/dist/firebaseui.css";
+// Default styles import from gstatic which may be legally problematic in EU
+import "@/styles/firebaseui.override.css";
 import "firebase/compat/auth";
 import { firebaseConfig } from "@/services/firebase";
 import { useAppStore } from "@/stores/app";

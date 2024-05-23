@@ -9,12 +9,13 @@
     "format": "prettier .  --write"
   },
   "dependencies": {
+    "@fontsource/roboto": "^5.0.13",
+    "@fontsource/roboto-mono": "^5.0.18",
     "@mdi/font": "6.2.95",
     "core-js": "^3.34.0",
     "export-to-csv": "^1.3.0",
     "file-saver": "^2.0.5",
     "firebaseui": "^6.1.0",
-    "roboto-fontface": "*",
     "tokml": "^0.4.0",
     "vue": "^3.4.21",
     "vuedraggable": "^4.1.0",

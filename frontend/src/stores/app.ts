@@ -13,7 +13,7 @@ import {
   deleteDoc,
   doc,
 } from "firebase/firestore";
-import queries from "@/assets/queries";
+import queries from "../constants/queries";
 import { bellingCatService } from "../services/bellingcat.service";
 import { osmService } from "../services/openstreetmap.service";
 import { mapboxService } from "../services/mapbox.service";
