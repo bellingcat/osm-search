@@ -53,7 +53,10 @@
 </template>
 
 <script setup lang="ts">
-import L from "leaflet"; // eslint-disable-line
+//https://github.com/vue-leaflet/vue-leaflet/issues/278
+import L from 'leaflet';
+globalThis.L = L;
+
 import { LMap, LTileLayer } from "@vue-leaflet/vue-leaflet";
 import { useAppStore } from "@/stores/app";
 import { computed } from "vue";

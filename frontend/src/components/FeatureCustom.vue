@@ -1,6 +1,6 @@
 <template>
-  <v-row class="justify-center mt-4 mb-8">
-    <v-btn @click="isDialogOpen = true" color="info">
+  <v-row class="mb-8 ml-5">
+    <v-btn @click="isDialogOpen = true" color="secondary" size="small" rounded  >
       <v-icon>mdi-plus</v-icon>
       <span>Custom feature</span>
     </v-btn>

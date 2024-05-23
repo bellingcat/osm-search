@@ -13,8 +13,13 @@ import App from "./App.vue";
 // Composables
 import { createApp } from "vue";
 
+
 //Styles
 import "leaflet/dist/leaflet.css";
+
+// Fonts
+import "@fontsource/roboto"; // Defaults to weight 400
+import "@fontsource/roboto-mono"; // Defaults to weight 400
 
 const app = createApp(App);
 
