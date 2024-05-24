@@ -1,40 +1,47 @@
 <template>
-  <v-card close style="margin-bottom: 1em;" variant="outlined" :color="color" density="compact">
-    <v-card-title>
-      {{ query.name }}&nbsp;
-      <span class="type">({{ query.type }})</span>
-    </v-card-title>
-    <v-card-text>
+  <v-list-item variant="outlined" class="mb-1" rounded :prepend-icon="icon">
+    <template v-slot:title>
+      <v-list-item-title :style="`color: ${color}`">
+        <v-row class="ma-0 align-center">
+          <v-text-field v-model="localName" @update:focused="updateName" hide-details variant="underlined"
+            density="compact" style="max-width: 70%"></v-text-field>
+          <span class="type">({{ query.type }})</span>
+        </v-row>
+      </v-list-item-title>
       <div v-for="(f, i) in query.filters" :key="i">
         <div class="code">
-          {{ (i == 0 ? "" : query.method + " ") + f.parameter
-          }}<a :href="'https://wiki.openstreetmap.org/wiki/Key:' + f.parameter" target="_blank" class="super">
-            <v-icon x-small>mdi-open-in-new</v-icon></a>
-          {{ f.comparison }}
-          {{
-          f.comparison == "is null" || f.comparison == "is not null"
-          ? ""
-          : f.value
-          }}
+          <v-row class="ma-0 align-center">
+            {{ (i == 0 ? "" : query.method + " ") + f.parameter
+            }}<a :href="'https://wiki.openstreetmap.org/wiki/Key:' + f.parameter" target="_blank">
+              <v-icon size="x-small">mdi-open-in-new</v-icon></a>
+            {{ f.comparison }}
+            {{
+            f.comparison == "is null" || f.comparison == "is not null"
+            ? ""
+            : f.value
+            }}
+          </v-row>
         </div>
       </div>
-    </v-card-text>
-    <v-card-actions>
-      <v-btn color="red" text @click.stop="remove(index)"> Remove </v-btn>
-      <v-btn color="blue" v-if="query.unsavedCustomFeature" text @click="dialog = true">
-        Save feature preset
-      </v-btn>
-    </v-card-actions>
-    <v-dialog v-model="dialog" width="auto">
+    </template>
+    <template v-slot:append>
+      <v-row class="ma-0 align-center" style="height: 100%">
+        <v-btn v-if="query.unsavedCustomFeature" @click.stop="saveCustomDialog = true" variant="text" color="blue"
+          icon="mdi-content-save"></v-btn>
+        <v-btn @click.stop="remove(index)" variant="text" color="red" icon="mdi-delete"></v-btn>
+      </v-row>
+    </template>
+    <v-dialog v-model="saveCustomDialog" width="auto">
       <v-card>
         <v-card-title>Save this feature as a preset</v-card-title>
         <v-card-text>
           Your saved presets are only visible to you.
-          <v-text-field label="Preset name" required v-model="name" :error="error"></v-text-field>
+          <v-text-field label="Preset name" required v-model="localName" @update:focused="updateName"
+          :error="error"></v-text-field>
         </v-card-text>
         <v-card-actions style="padding-bottom: 1em; margin-top: -0.5em">
           <v-btn color="red" @click="
-              dialog = false;
+              saveCustomDialog = false;
               error = false;
             ">Cancel</v-btn>
           <v-btn color="primary" style="margin-right: 0em; margin-left: auto" @click="tryToSave(index)">Save
@@ -42,7 +49,7 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-  </v-card>
+  </v-list-item>
 </template>
 
 <script setup lang="ts">
@@ -51,9 +58,14 @@ import { watch, ref, computed } from "vue";
 const props = defineProps(["query", "index"]);
 
 const store = useAppStore();
-const dialog = ref(false);
-const name = ref("");
+const saveCustomDialog = ref(false);
+const newName = ref("");
 const error = ref(false);
+const localName = ref(props.query.name);
+
+const name = computed(() => {
+  return props.query.name;
+});
 
 const color = computed(() => {
   switch (props.query.type) {
@@ -65,6 +77,18 @@ const color = computed(() => {
       return "#FFC107";
     default:
       return "#BEBEBE";
+  }
+});
+const icon = computed(() => {
+  switch (props.query.type) {
+    case "point":
+      return "mdi-map-marker";
+    case "line":
+      return "mdi-map-marker-path";
+    case "polygon":
+      return "mdi-map-marker-radius";
+    default:
+      return "mdi-map-marker-question";
   }
 });
 
@@ -81,11 +105,22 @@ function tryToSave(index) {
   oldSelected[index].unsavedCustomFeature = false;
   oldSelected[index].name = name;
   store.updateSelected(oldSelected);
-  dialog.value = false;
+  saveCustomDialog.value = false;
   store.savePreset({ index, name: name.value });
 }
 
+function updateName(focus) {
+  if (!focus) {
+    console.log("Updaing")
+    store.renameFeature(props.index, localName.value);
+  }
+}
+
 watch(name, (newName) => {
+  localName.value = newName;
+});
+
+watch(newName, (newName) => {
   if (newName.length > 0) {
     error.value = false;
   }
@@ -93,9 +128,4 @@ watch(name, (newName) => {
 </script>
 
 <style>
-.super {
-  font-size: 0.8em;
-  vertical-align: super;
-  text-decoration: none;
-}
 </style>

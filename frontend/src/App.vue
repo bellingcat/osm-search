@@ -53,7 +53,6 @@ function toggleDarkMode() {
 </script>
 
 <style>
-
 body {
   font-family: Helvetica, Arial, sans-serif;
 }
