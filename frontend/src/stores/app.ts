@@ -31,7 +31,7 @@ interface State {
   mapZoom: number;
   responseTime: number | null;
   osmKeys: any[];
-  selectedKeyValues: any[];
+  selectedKeyValues: Record<string,any[]>;
   user: any | null;
   presets: typeof queries;
   customPresets: any[];
@@ -54,7 +54,7 @@ export const useAppStore = defineStore("app", {
     mapZoom: 13,
     responseTime: null,
     osmKeys: [],
-    selectedKeyValues: [],
+    selectedKeyValues: {},
     user: null,
     presets: queries,
     customPresets: [],
@@ -72,6 +72,9 @@ export const useAppStore = defineStore("app", {
     },
     updateSelected(value) {
       this.selected = [...value];
+    },
+    renameFeature(index, name) {
+      this.selected[index].name = name;
     },
     removeSelected(index) {
       const value = this.selected;
@@ -130,9 +133,6 @@ export const useAppStore = defineStore("app", {
     setResponseTime(t) {
       this.responseTime = t;
     },
-    setSelectedKeyValues(values) {
-      this.selectedKeyValues = values;
-    },
     setCustomPresets(presets) {
       this.customPresets = presets;
     },
@@ -165,13 +165,16 @@ export const useAppStore = defineStore("app", {
     },
 
     async getValues(v) {
-      this.selectedKeyValues = [];
+      if (this.selectedKeyValues[v]) {
+        return;
+      }
+
       if (v == "" || v == undefined || v == null) {
         return;
       }
 
       osmService.getValues(v).then((data) => {
-        this.selectedKeyValues = data.data
+        this.selectedKeyValues[v] = data.data
           .filter((d) => d.fraction > 0.002)
           .map((d) => d.value);
       });

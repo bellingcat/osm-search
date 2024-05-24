@@ -1,22 +1,10 @@
 <template>
-  <v-card
-    :id="'result' + index"
-    class="result ma-1"
-    variant="tonal"
-    :color="color"
-    @mouseover="store.setHoveredResult(index)"
-    @mouseleave="store.setHoveredResult(null)"
-    @click="clicked"
-  >
+  <v-card :id="'result' + index" class="result ma-1" variant="tonal" :color="color"
+    @mouseover="store.setHoveredResult(index)" @mouseleave="store.setHoveredResult(null)" @click="clicked">
     <v-card-title>
       <v-row>
         <v-spacer></v-spacer>
-        <v-btn
-          variant="plain"
-          icon="mdi-delete"
-          @click.stop="store.removeResult(index)"
-          color="red"
-        >
+        <v-btn variant="plain" icon="mdi-delete" @click.stop="store.removeResult(index)" color="red">
         </v-btn>
       </v-row>
     </v-card-title>
@@ -24,28 +12,18 @@
       <v-row>
         <v-col>
           <div class="map">
-            <l-map
-              :zoom="17"
-              :center="latLng"
-              :options="{ zoomControl: false }"
-              style="width: 180px; height: 100px"
-            >
+            <l-map :zoom="17" :center="latLng" :options="{ zoomControl: false }" style="width: 180px; height: 100px">
               <l-tile-layer :url="url" />
             </l-map>
           </div>
         </v-col>
         <v-col class="justify-center text-center">
           <div>
-            {{ name || "-" }}
+            {{ name || "&nbsp;"}}
           </div>
-          <v-btn
-            :href="`https://www.google.com/maps/search/?api=1&query=${result.lat},${result.lng}`"
-            variant="flat"
-            append-icon="mdi-open-in-new"
-            target="_blank"
-            :color="color"
-            >({{ lat }}, {{ lng }})</v-btn
-          >
+          <v-btn :href="`https://www.google.com/maps/search/?api=1&query=${result.lat},${result.lng}`" variant="text"
+            append-icon="mdi-open-in-new" target="_blank" color="black">
+            ({{ lat }}, {{ lng }})</v-btn>
         </v-col>
       </v-row>
     </v-card-text>
@@ -54,7 +32,7 @@
 
 <script setup lang="ts">
 //https://github.com/vue-leaflet/vue-leaflet/issues/278
-import L from 'leaflet';
+import L from "leaflet";
 globalThis.L = L;
 
 import { LMap, LTileLayer } from "@vue-leaflet/vue-leaflet";
@@ -110,7 +88,6 @@ function clicked() {
   store.setSelectedResult(index.value);
   store.setMapPosition({
     center: latLng.value,
-    zoom: 14,
   });
 }
 </script>
@@ -141,14 +118,6 @@ function clicked() {
 
 .result .v-card__text {
   padding: 8px;
-}
-
-a.outlink {
-  /* color: black !important; */
-}
-
-.outlink:hover {
-  /* background-color: #ddd; */
 }
 
 .result .v-btn__content {
