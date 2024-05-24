@@ -11,7 +11,7 @@
 </template>
 <script setup lang="ts">
 //https://github.com/vue-leaflet/vue-leaflet/issues/278
-import L from 'leaflet';
+import L from "leaflet";
 globalThis.L = L;
 
 import { LCircleMarker } from "@vue-leaflet/vue-leaflet";

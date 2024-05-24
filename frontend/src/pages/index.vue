@@ -1,19 +1,14 @@
 <template>
   <v-main v-if="isLoggedIn">
     <HelpCard />
-    <v-row>
-      <v-col cols="7">
-        <MainMap class="mt-12 pr-0" />
+    <v-row class="mt-0">
+      <v-col cols="7" class="mx-0">
+        <MainMap class="pr-0" />
       </v-col>
-      <v-divider vertical />
-      <v-col cols=" 5">
+      <v-col cols=" 5" class="mt-3 mx-0">
         <v-tabs v-model="tab" align-tabs="center" fixed-tabs>
-          <v-tab value="search" append-icon="mdi-map-search-outline"
-            >Search</v-tab
-          >
-          <v-tab value="results" append-icon="mdi-map-marker-multiple"
-            >Results</v-tab
-          >
+          <v-tab value="search" append-icon="mdi-map-search-outline">Search</v-tab>
+          <v-tab value="results" append-icon="mdi-map-marker-multiple">Results</v-tab>
         </v-tabs>
         <v-tabs-window v-model="tab">
           <v-tabs-window-item value="search">

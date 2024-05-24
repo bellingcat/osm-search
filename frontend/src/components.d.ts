@@ -11,7 +11,7 @@ declare module 'vue' {
     FeatureSelector: typeof import('./components/FeatureSelector.vue')['default']
     FeatureView: typeof import('./components/FeatureView.vue')['default']
     FirebaseLogin: typeof import('./components/FirebaseLogin.vue')['default']
-    GoogleLogin: typeof import('./components/GoogleLogin.vue')['default']
+    GoogleLogin: (typeof import("./components/GoogleLogin.vue"))["default"]
     HelpCard: typeof import('./components/HelpCard.vue')['default']
     MainMap: typeof import('./components/MainMap.vue')['default']
     MapMarker: typeof import('./components/MapMarker.vue')['default']

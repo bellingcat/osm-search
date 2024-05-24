@@ -11,6 +11,6 @@
 
 $custom-family: "Roboto", sans-serif;
 @use "vuetify/settings" with (
-    $body-font-family: $custom-family,
-    $heading-font-family: $custom-family
+  $body-font-family: $custom-family,
+  $heading-font-family: $custom-family
 );
