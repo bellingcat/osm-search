@@ -10,9 +10,10 @@
     </v-card-title>
     <v-card-text>
       <v-row>
-        <v-col>
+        <v-col class="align-center">
           <div class="map">
-            <l-map :zoom="17" :center="latLng" :options="{ zoomControl: false }" style="width: 180px; height: 100px">
+            <l-map :zoom="zoom" :center="latLng" :options="{ zoomControl: false }" style="width: 180px; height: 100px">
+              <GeoJsonVisualizer v-for="(geometry) in geometries" :geojson="geometry" />
               <l-tile-layer :url="url" />
             </l-map>
           </div>
@@ -22,7 +23,7 @@
             {{ name || "&nbsp;"}}
           </div>
           <v-btn :href="`https://www.google.com/maps/search/?api=1&query=${result.lat},${result.lng}`" variant="text"
-            append-icon="mdi-open-in-new" target="_blank" color="black">
+            append-icon="mdi-open-in-new" target="_blank">
             ({{ lat }}, {{ lng }})</v-btn>
         </v-col>
       </v-row>
@@ -36,12 +37,14 @@ import L from "leaflet";
 globalThis.L = L;
 
 import { LMap, LTileLayer } from "@vue-leaflet/vue-leaflet";
-import { useAppStore } from "@/stores/app";
-import { computed } from "vue";
+import { useAppStore, SearchResult } from "@/stores/app";
+import { computed, ref } from "vue";
 
-const props = defineProps({
-  result: Object,
-});
+const zoom = ref(14)
+
+const props = defineProps<{
+  result: SearchResult,
+}>();
 const store = useAppStore();
 
 const url = computed(() => {
@@ -84,6 +87,10 @@ const index = computed(() => {
   return props.result.index;
 });
 
+const geometries = computed(() => {
+  return props.result.geometry;
+});
+
 function clicked() {
   store.setSelectedResult(index.value);
   store.setMapPosition({
@@ -102,7 +109,7 @@ function clicked() {
 }
 
 .result:hover {
-  background-color: #d1c4e9;
+  background-color: #118833;
   cursor: default;
 }
 

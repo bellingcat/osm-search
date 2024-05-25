@@ -111,7 +111,6 @@ function tryToSave(index) {
 
 function updateName(focus) {
   if (!focus) {
-    console.log("Updaing")
     store.renameFeature(props.index, localName.value);
   }
 }
