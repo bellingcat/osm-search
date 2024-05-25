@@ -1,16 +1,20 @@
+import json
 import math
 import time
 from datetime import datetime, timedelta
 from functools import wraps
+from re import match
 
 import firebase_admin
 import psycopg
 from api_types import (
     Bbox,
     Filter,
+    GeoJSON,
     PostgresConfig,
     RequestParams,
     RetrievedData,
+    RetrievedDataRaw,
     Timeout,
 )
 from firebase_admin import auth, credentials, firestore
@@ -25,7 +29,7 @@ from pydantic import ValidationError
 cred = credentials.Certificate("service_account.json")
 firebase_app = firebase_admin.initialize_app(cred)
 db = firestore.client()
-#
+
 # Flask initialization
 app = Flask(__name__)
 app.config["TEMPLATES_AUTO_RELOAD"] = True
@@ -95,7 +99,7 @@ def get_db_connection() -> psycopg.Connection:
 
 def query_with_timing(
     query, conn: psycopg.Connection | None = None
-) -> tuple[list[RetrievedData], timedelta]:
+) -> tuple[list[RetrievedDataRaw], timedelta]:
     if conn is None:
         conn = get_db_connection()
 
@@ -110,16 +114,28 @@ def query_with_timing(
         logger.warning("Request timed out")
         raise Timeout()
 
-    data: list[RetrievedData] = cur.fetchall()
+    data: list[RetrievedDataRaw] = cur.fetchall()
     cur.close()
     conn.close()
 
     t2 = datetime.now()
 
-    for d in data:
-        del d["point_geom"]
-
     return (data, t2 - t1)
+
+
+def format_results_log(data: list[RetrievedDataRaw]) -> list[dict]:
+    LOGGED_KEYS = {"name", "lat", "lng", "point_geom"}
+    return [{k: v for k, v in x.items() if k in LOGGED_KEYS} for x in data]
+
+
+def format_filters_log(filters: list[Filter]) -> list[dict]:
+    filters_dict = [dict(filter) for filter in filters]
+
+    filters_formatted = []
+    for f in filters_dict:
+        subfilters = list(map(dict, f["filters"]))
+        filters_formatted.append({**f, "filters": subfilters})
+    return filters_formatted
 
 
 def log_query(
@@ -128,7 +144,7 @@ def log_query(
     bbox: Bbox,
     filters: list[Filter],
     tdiff: timedelta,
-    data: list[RetrievedData],
+    data: list[RetrievedDataRaw],
 ):
     timestamp: int = time.time_ns()  # type: ignore
     user: dict | None = get_user(request)
@@ -139,10 +155,10 @@ def log_query(
         "user_uid": user["uid"] if user else None,
         "user_email": user["email"] if user else None,
         "bbox": list(bbox),
-        "filters": [dict(f) for f in filters],
+        "filters": format_filters_log(filters),
         "query_time": tdiff.total_seconds(),
         "query_nresults": len(data),
-        "query_results": data,
+        "query_results": format_results_log(data),
     }
 
     db.collection("searches").document(str(timestamp)).set(log_data)
@@ -278,15 +294,24 @@ def build_query(
         additional_cte_list.append((cte_id, build_cte_from_filter(f, cte_id)))
 
     query = sql.SQL(
-        "{envelope_cte}, {ctes} {select_statement} {join_staments} {pagination}"
+        "{envelope_cte}, {ctes} {select_statement_initial} {select_statements_cte} {from_statement} {join_staments} {pagination}"
     ).format(
         envelope_cte=envelope_cte,
         ctes=sql.SQL(", ").join(
             [initial_cte, *[cte_sql for cte_id, cte_sql in additional_cte_list]]
         ),
-        select_statement=sql.SQL(
-            "SELECT DISTINCT point_geom, name, ST_Y(point_geom) AS lat, ST_X(point_geom) AS lng FROM initial_table"
+        select_statement_initial=sql.SQL(
+            "SELECT point_geom, name, ST_Y(point_geom) AS lat, ST_X(point_geom) AS lng, ST_AsGeoJSON(ST_Transform(initial_table.geom, 4326)) AS main_geom,"
         ),
+        select_statements_cte=sql.SQL(" ,").join(
+            [
+                sql.SQL(
+                    "ARRAY_AGG(DISTINCT ST_AsGeoJSON(ST_Transform({cte_id}.geom, 4326))) AS {cte_id}_geom"
+                ).format(cte_id=cte_id)
+                for cte_id, cte_sql in additional_cte_list
+            ]
+        ),
+        from_statement=sql.SQL("FROM initial_table"),
         join_staments=sql.SQL(" ").join(
             [
                 sql.SQL(
@@ -296,11 +321,27 @@ def build_query(
             ]
         ),
         pagination=sql.SQL(
-            "ORDER BY point_geom, name, lat, lng LIMIT {limit} OFFSET {offset}"
+            "GROUP BY point_geom, name, initial_table.geom ORDER BY point_geom, name, lat, lng LIMIT {limit} OFFSET {offset}"
         ).format(limit=sql.Literal(limit + 1), offset=sql.Literal(offset)),
     )
 
     return query
+
+
+def format_retrieved_data(data: RetrievedDataRaw) -> RetrievedData:
+    geometries: list[GeoJSON] = [json.loads(data["main_geom"])]
+    geometry_columns = [
+        column for column in data.keys() if match(r"^subquery\d+_geom$", column)
+    ]
+    for column in geometry_columns:
+        geometries.extend([json.loads(item) for item in data[column]])  # type: ignore
+
+    return {
+        "name": data["name"],
+        "lat": data["lat"],
+        "lng": data["lng"],
+        "geometry": geometries,
+    }
 
 
 @app.route("/intersection")
@@ -324,7 +365,7 @@ def get_intersection() -> tuple[Response, int] | Response:
     filters: list[Filter] = params.filters
 
     bbox: Bbox = Bbox(params.l, params.b, params.r, params.t)
-    limit = min(params.limit, 100)
+    limit = min(params.limit, 5)
     offset = params.page * limit
 
     area: float = (
@@ -350,6 +391,7 @@ def get_intersection() -> tuple[Response, int] | Response:
     except Timeout:
         return Response(status=408)
 
+    data_formatted = list(map(format_retrieved_data, data))
     log_query(request, query_string, bbox, filters, tdiff, data)
 
     logger.info(f"Found {len(data)} results in {tdiff} seconds")
@@ -358,9 +400,14 @@ def get_intersection() -> tuple[Response, int] | Response:
         return jsonify({"message": "No results found", "data": []})
 
     # We fetch one extra result to determine if there are more results
-    has_more = len(data) > limit
+    has_more = len(data_formatted) > limit
 
-    return jsonify({"data": data[0 : min(len(data), limit)], "has_more": has_more})
+    return jsonify(
+        {
+            "data": data_formatted[0 : min(len(data_formatted), limit)],
+            "has_more": has_more,
+        }
+    )
 
 
 @app.route("/robots.txt")

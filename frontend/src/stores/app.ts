@@ -18,9 +18,25 @@ import { bellingCatService } from "../services/bellingcat.service";
 import { osmService } from "../services/openstreetmap.service";
 import { mapboxService } from "../services/mapbox.service";
 
+
+export interface SearchResult {
+  geometry: GeoJSON[]
+  lat: number
+  lng: number
+  name: string
+  index: number
+  hovered?: boolean
+  selected?: boolean
+}
+
+export interface GeoJSON {
+  coordinates: number[][]
+  type: string
+}
+
 interface State {
   selected: any[];
-  searchResults: any[];
+  searchResults: SearchResult[];
   bbox: number[];
   error: boolean | string;
   range: number;
