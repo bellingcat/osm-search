@@ -1,9 +1,22 @@
 <template>
-  <GeoJsonVisualizer v-if="result.selected" v-for="(geometry) in geometries" :geojson="geometry"
-    @click="mapClick(result.index)" />
-  <l-circle-marker v-else :lat-lng="latLng" :key="'marker' + result.index" :radius="4" :color="color"
-    @mouseover="store.setHoveredResult(index)" @mouseleave="store.setHoveredResult(null)"
-    @click="mapClick(result.index)" />
+  <div v-if="result.selected">
+    <GeoJsonVisualizer
+      v-for="(geometry, index) in geometries"
+      v-bind:key="'geojson_mainmap' + index"
+      :geojson="geometry"
+      @click="mapClick(result.index)"
+    />
+  </div>
+  <l-circle-marker
+    v-else
+    :lat-lng="latLng"
+    :key="'marker' + result.index"
+    :radius="4"
+    :color="color"
+    @mouseover="store.setHoveredResult(index)"
+    @mouseleave="store.setHoveredResult(null)"
+    @click="mapClick(result.index)"
+  />
 </template>
 <script setup lang="ts">
 //https://github.com/vue-leaflet/vue-leaflet/issues/278
@@ -17,7 +30,7 @@ import { computed } from "vue";
 const store = useAppStore();
 
 const props = defineProps<{
-  result: SearchResult,
+  result: SearchResult;
 }>();
 
 const color = computed(() => {
@@ -39,12 +52,11 @@ const index = computed(() => {
 function mapClick() {
   store.setSelectedResult(index);
   document
-    .getElementById("result" + index)
+    .getElementById("result" + index.value)
     ?.scrollIntoView({ behavior: "smooth" });
 }
 
 const geometries = computed(() => {
   return props.result.geometry;
 });
-
 </script>

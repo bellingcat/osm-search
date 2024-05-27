@@ -18,20 +18,19 @@ import { bellingCatService } from "../services/bellingcat.service";
 import { osmService } from "../services/openstreetmap.service";
 import { mapboxService } from "../services/mapbox.service";
 
-
 export interface SearchResult {
-  geometry: GeoJSON[]
-  lat: number
-  lng: number
-  name: string
-  index: number
-  hovered?: boolean
-  selected?: boolean
+  geometry: GeoJSON[];
+  lat: number;
+  lng: number;
+  name: string;
+  index: number;
+  hovered?: boolean;
+  selected?: boolean;
 }
 
 export interface GeoJSON {
-  coordinates: number[][]
-  type: string
+  coordinates: number[][];
+  type: string;
 }
 
 interface State {
@@ -47,7 +46,7 @@ interface State {
   mapZoom: number;
   responseTime: number | null;
   osmKeys: any[];
-  selectedKeyValues: Record<string,any[]>;
+  selectedKeyValues: Record<string, any[]>;
   user: any | null;
   presets: typeof queries;
   customPresets: any[];

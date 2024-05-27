@@ -10,14 +10,27 @@
             Longer distance will take longer to search.<br />
           </v-card-subtitle>
           <v-card-text>
-            <v-slider v-model="range" thumb-label="always" :max="500" step="1" class="mb-1 mt-4">
+            <v-slider
+              v-model="range"
+              thumb-label="always"
+              :max="500"
+              step="1"
+              class="mb-1 mt-4"
+            >
               <template v-slot:thumb-label> {{ range }}m </template>
             </v-slider>
           </v-card-text>
         </v-card>
       </v-row>
       <v-row class="justify-center mt-0 mb-6">
-        <v-btn @click="search" size="x-large" color="green" :disabled="store.loading" rounded>Search</v-btn>
+        <v-btn
+          @click="search"
+          size="x-large"
+          color="green"
+          :disabled="store.loading"
+          rounded
+          >Search</v-btn
+        >
       </v-row>
       <v-alert type="error" class="mt-4" v-if="store.selected.length < 1">
         Select at least one feature to begin a search.

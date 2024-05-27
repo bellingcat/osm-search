@@ -17,26 +17,52 @@
       </v-card-title>
       <v-card-text>
         <v-row v-for="(f, i) in filters" :key="'row' + i">
-          <v-col cols="2"><v-select v-if="i == 0" label="Feature type" :items="queryTypes"
-              v-model="selectedQueryType"></v-select>
-            <v-select v-else-if="i == 1" label="Condition" :items="['OR', 'AND']" v-model="method"></v-select>
-          </v-col><v-col>
+          <v-col cols="2"
+            ><v-select
+              v-if="i == 0"
+              label="Feature type"
+              :items="queryTypes"
+              v-model="selectedQueryType"
+            ></v-select>
+            <v-select
+              v-else-if="i == 1"
+              label="Condition"
+              :items="['OR', 'AND']"
+              v-model="method"
+            ></v-select> </v-col
+          ><v-col>
             <!-- Text field for OSM parameter -->
-            <v-combobox class="code" label="OSM key" v-model="filters[i].parameter" :items="store.osmKeys"
-              @update:modelValue="getValues">
-              <template v-slot:append v-if="
+            <v-combobox
+              class="code"
+              label="OSM key"
+              v-model="filters[i].parameter"
+              :items="store.osmKeys"
+              @update:modelValue="getValues"
+            >
+              <template
+                v-slot:append
+                v-if="
                   filters[i].parameter != '' && filters[i].parameter != null
-                ">
-                <a :href="
+                "
+              >
+                <a
+                  :href="
                     'https://wiki.openstreetmap.org/wiki/Key:' +
                     filters[i].parameter
-                  " target="_blank" class="super">
-                  <v-icon x-small>mdi-open-in-new</v-icon></a>
+                  "
+                  target="_blank"
+                  class="super"
+                >
+                  <v-icon x-small>mdi-open-in-new</v-icon></a
+                >
               </template>
-            </v-combobox></v-col>
+            </v-combobox></v-col
+          >
           <v-col>
             <!-- Dropdown for type of comparison between parameter and value -->
-            <v-select label="" :items="[
+            <v-select
+              label=""
+              :items="[
                 '=',
                 '!=',
                 '>',
@@ -49,29 +75,49 @@
                 'does not contain',
                 'is null',
                 'is not null',
-              ]" v-model="filters[i].comparison"></v-select>
+              ]"
+              v-model="filters[i].comparison"
+            ></v-select>
           </v-col>
           <v-col>
             <!-- Text field for parameter value -->
-            <v-combobox class="code" label="OSM value" v-model="filters[i].value"
-              :items="store.selectedKeyValues[filters[i].parameter]" :disabled="
+            <v-combobox
+              class="code"
+              label="OSM value"
+              v-model="filters[i].value"
+              :items="store.selectedKeyValues[filters[i].parameter]"
+              :disabled="
                 filters[i].comparison == 'is null' ||
                 filters[i].comparison == 'is not null'
-              "></v-combobox>
+              "
+            ></v-combobox>
           </v-col>
           <v-col cols="1">
-            <v-btn v-if="i > 0" @click="removeFilter(i)" icon="mdi-close" variant="text">
+            <v-btn
+              v-if="i > 0"
+              @click="removeFilter(i)"
+              icon="mdi-close"
+              variant="text"
+            >
             </v-btn>
           </v-col>
         </v-row>
         <v-row class="ma-0 justify-center">
-          <v-btn rounded color="secondary" text @click="addFilter">Add condition</v-btn>
+          <v-btn rounded color="secondary" text @click="addFilter"
+            >Add condition</v-btn
+          >
         </v-row>
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn style="margin-left: auto" color="primary" text @click="addCustom"
-          :disabled="filters[0].parameter == ''">Add custom feature</v-btn>
+        <v-btn
+          style="margin-left: auto"
+          color="primary"
+          text
+          @click="addCustom"
+          :disabled="filters[0].parameter == ''"
+          >Add custom feature</v-btn
+        >
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -130,7 +176,7 @@ function removeFilter(index) {
   filters.value = [
     ...filters.value.slice(0, index),
     ...filters.value.slice(index + 1),
-  ]
+  ];
 }
 
 function getValues(v) {

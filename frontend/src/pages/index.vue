@@ -7,8 +7,12 @@
       </v-col>
       <v-col cols=" 5" class="mt-3 mx-0">
         <v-tabs v-model="tab" align-tabs="center" fixed-tabs>
-          <v-tab value="search" append-icon="mdi-map-search-outline">Search</v-tab>
-          <v-tab value="results" append-icon="mdi-map-marker-multiple">Results</v-tab>
+          <v-tab value="search" append-icon="mdi-map-search-outline"
+            >Search</v-tab
+          >
+          <v-tab value="results" append-icon="mdi-map-marker-multiple"
+            >Results</v-tab
+          >
         </v-tabs>
         <v-tabs-window v-model="tab">
           <v-tabs-window-item value="search">
