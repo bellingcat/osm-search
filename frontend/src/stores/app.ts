@@ -66,7 +66,7 @@ export const useAppStore = defineStore("app", {
     mode: "osm",
     loading: false,
     token: false,
-    mapCenter: [48.41322, 8.219482], // [42.2, -71.7],
+    mapCenter: [42.2, -71.7],
     mapZoom: 13,
     responseTime: null,
     osmKeys: [],
