@@ -1,9 +1,10 @@
 <template>
   <l-polyline v-if="vizType === 'polyline'" :color="'#0000FF'" :lat-lngs="coordinates">
   </l-polyline>
-  <l-polygon v-else-if="vizType === 'polygon'" :color="'#0000FF'" :lat-lngs="coordinates">
+  <l-polygon v-else-if="vizType === 'polygon'" :color="'#0000FF'" :fill="true" :fillOpacity="0.5" fillColor="#0000FF"
+    :lat-lngs="coordinates">
   </l-polygon>
-  <l-circle-marker v-else-if="vizType === 'marker'" :lat-lng="coordinates" :color="'#0000FF'">
+  <l-circle-marker v-else-if="vizType === 'marker'" :lat-lng="coordinates" :color="'#0000FF'" :radius="4">
   </l-circle-marker>
 </template>
 
