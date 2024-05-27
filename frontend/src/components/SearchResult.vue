@@ -1,10 +1,22 @@
 <template>
-  <v-card :id="'result' + index" class="result ma-1" variant="tonal" :color="color"
-    @mouseover="store.setHoveredResult(index)" @mouseleave="store.setHoveredResult(null)" @click="clicked">
+  <v-card
+    :id="'result' + index"
+    class="result ma-1"
+    variant="tonal"
+    :color="color"
+    @mouseover="store.setHoveredResult(index)"
+    @mouseleave="store.setHoveredResult(null)"
+    @click="clicked"
+  >
     <v-card-title>
       <v-row>
         <v-spacer></v-spacer>
-        <v-btn variant="plain" icon="mdi-delete" @click.stop="store.removeResult(index)" color="red">
+        <v-btn
+          variant="plain"
+          icon="mdi-delete"
+          @click.stop="store.removeResult(index)"
+          color="red"
+        >
         </v-btn>
       </v-row>
     </v-card-title>
@@ -12,19 +24,33 @@
       <v-row>
         <v-col class="align-center">
           <div class="map">
-            <l-map :zoom="zoom" :center="latLng" :options="{ zoomControl: false }" style="width: 180px; height: 100px">
-              <GeoJsonVisualizer v-for="(geometry) in geometries" :geojson="geometry" />
+            <l-map
+              :zoom="zoom"
+              :center="latLng"
+              :options="{ zoomControl: false }"
+              style="width: 180px; height: 100px"
+            >
+              <GeoJsonVisualizer
+                v-for="(geometry, index) in geometries"
+                v-bind:key="'geojson_result' + index"
+                :geojson="geometry"
+              />
               <l-tile-layer :url="url" />
             </l-map>
           </div>
         </v-col>
         <v-col class="justify-center text-center">
           <div>
-            {{ name || "&nbsp;"}}
+            {{ name || "&nbsp;" }}
           </div>
-          <v-btn :href="`https://www.google.com/maps/search/?api=1&query=${result.lat},${result.lng}`" variant="text"
-            append-icon="mdi-open-in-new" target="_blank">
-            ({{ lat }}, {{ lng }})</v-btn>
+          <v-btn
+            :href="`https://www.google.com/maps/search/?api=1&query=${result.lat},${result.lng}`"
+            variant="text"
+            append-icon="mdi-open-in-new"
+            target="_blank"
+          >
+            ({{ lat }}, {{ lng }})</v-btn
+          >
         </v-col>
       </v-row>
     </v-card-text>
@@ -40,10 +66,10 @@ import { LMap, LTileLayer } from "@vue-leaflet/vue-leaflet";
 import { useAppStore, SearchResult } from "@/stores/app";
 import { computed, ref } from "vue";
 
-const zoom = ref(14)
+const zoom = ref(14);
 
 const props = defineProps<{
-  result: SearchResult,
+  result: SearchResult;
 }>();
 const store = useAppStore();
 

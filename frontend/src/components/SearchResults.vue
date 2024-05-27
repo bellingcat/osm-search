@@ -8,8 +8,12 @@
     </v-card-subtitle>
     <v-card-actions>
       <v-row class="justify-start mx-2">
-        <v-btn text @click="csv" variant="outlined" rounded>Export as CSV</v-btn>
-        <v-btn text @click="kml" variant="outlined" rounded>Export as KML</v-btn>
+        <v-btn text @click="csv" variant="outlined" rounded
+          >Export as CSV</v-btn
+        >
+        <v-btn text @click="kml" variant="outlined" rounded
+          >Export as KML</v-btn
+        >
       </v-row>
     </v-card-actions>
     <v-card-text>
@@ -17,23 +21,37 @@
         <v-card v-if="store.loading" height="60vh">
           <v-col style="height: 100%">
             <v-row class="justify-center align-center" style="height: 100%">
-              <v-progress-circular indeterminate color="primary" size="100" class="mx-auto"></v-progress-circular>
+              <v-progress-circular
+                indeterminate
+                color="primary"
+                size="100"
+                class="mx-auto"
+              ></v-progress-circular>
             </v-row>
           </v-col>
         </v-card>
         <v-card v-else-if="store.searchResults.length === 0" height="60vh">
           <v-col style="height: 100%">
-            <v-row class="justify-center align-center text-center" style="height: 100%">
+            <v-row
+              class="justify-center align-center text-center"
+              style="height: 100%"
+            >
               <v-col>
-                <div>
-                  No results to show.
-                </div>
-                  <v-btn @click="returnToSearch" variant="text" color="primary">Return to search</v-btn>
+                <div>No results to show.</div>
+                <v-btn @click="returnToSearch" variant="text" color="primary"
+                  >Return to search</v-btn
+                >
               </v-col>
             </v-row>
           </v-col>
         </v-card>
-        <v-virtual-scroll :items="store.searchResults || []" height="60vh" v-else key-field="index" class="scroller">
+        <v-virtual-scroll
+          :items="store.searchResults || []"
+          height="60vh"
+          v-else
+          key-field="index"
+          class="scroller"
+        >
           <template v-slot:default="{ item }">
             <SearchResult :result="item" />
           </template>
