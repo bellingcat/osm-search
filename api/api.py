@@ -261,6 +261,36 @@ def build_cte_from_filter(f: Filter, id: sql.SQL) -> sql.Composed:
     return assembled
 
 
+def generate_join_statements(
+    cte_list: list[tuple[sql.Composed, sql.Composed]], buffer: int
+) -> sql.Composed:
+    return sql.SQL(" ").join(
+        [
+            sql.SQL(
+                "JOIN {cte_id} ON ST_DWithin(initial_table.geom, {cte_id}.geom, {buffer}) AND {self_join_exclusion_clause}"
+            ).format(
+                cte_id=cte_id,
+                buffer=sql.Literal(buffer),
+                self_join_exclusion_clause=sql.SQL(" AND ").join(
+                    [
+                        sql.SQL("{cte_id}.osm_id != initial_table.osm_id").format(
+                            cte_id=cte_id
+                        )
+                    ]
+                    + [
+                        sql.SQL("{cte_id}.osm_id != {cte_id2}.osm_id").format(
+                            cte_id=cte_id, cte_id2=cte_id2
+                        )
+                        for cte_id2, _ in cte_list[0:index]
+                        if cte_id2 != cte_id
+                    ]
+                ),
+            )
+            for index, [cte_id, cte_sql] in enumerate(cte_list)
+        ]
+    )
+
+
 def build_query(
     filters: list[Filter], bbox: Bbox, buffer: int, limit: int, offset: int
 ) -> sql.Composed:
@@ -315,31 +345,7 @@ def build_query(
             ]
         ),
         from_statement=sql.SQL("FROM initial_table"),
-        join_staments=sql.SQL(" ").join(
-            [
-                sql.SQL(
-                    "JOIN {cte_id} ON ST_DWithin(initial_table.geom, {cte_id}.geom, {buffer}) AND {self_join_exclusion_clause}"
-                ).format(
-                    cte_id=cte_id,
-                    buffer=sql.Literal(buffer),
-                    self_join_exclusion_clause=sql.SQL(" AND ").join(
-                        [
-                            sql.SQL("{cte_id}.osm_id != initial_table.osm_id").format(
-                                cte_id=cte_id
-                            )
-                        ]
-                        + [
-                            sql.SQL("{cte_id}.osm_id != {cte_id2}.osm_id").format(
-                                cte_id=cte_id, cte_id2=cte_id2
-                            )
-                            for cte_id2, _ in additional_cte_list[0:index]
-                            if cte_id2 != cte_id
-                        ]
-                    ),
-                )
-                for index, [cte_id, cte_sql] in enumerate(additional_cte_list)
-            ]
-        ),
+        join_staments=generate_join_statements(additional_cte_list, buffer),
         pagination=sql.SQL(
             "GROUP BY point_geom, name, initial_table.geom ORDER BY point_geom, name, lat, lng LIMIT {limit} OFFSET {offset}"
         ).format(limit=sql.Literal(limit + 1), offset=sql.Literal(offset)),
