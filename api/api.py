@@ -253,7 +253,8 @@ def build_cte_from_filter(f: Filter, id: sql.SQL) -> sql.Composed:
 
     assembled: sql.Composed = sql.SQL(
         """{id} AS (SELECT
-        way AS geom
+        way AS geom,
+        osm_id
         FROM {source_table}, envelope
         WHERE ({filter}) AND (way && envelope.geom))"""
     ).format(id=id, source_table=source_table, filter=filter_query)
@@ -281,6 +282,7 @@ def build_query(
     initial_cte = sql.SQL(
         """initial_table AS (
             SELECT
+                osm_id,
                 tags->'name' AS name,
                 ST_Transform(ST_Centroid(way), 4326) AS point_geom,
                 way AS geom
@@ -301,7 +303,8 @@ def build_query(
             [initial_cte, *[cte_sql for cte_id, cte_sql in additional_cte_list]]
         ),
         select_statement_initial=sql.SQL(
-            "SELECT point_geom, name, ST_Y(point_geom) AS lat, ST_X(point_geom) AS lng, ST_AsGeoJSON(ST_Transform(initial_table.geom, 4326)) AS main_geom,"
+            "SELECT point_geom, name, ST_Y(point_geom) AS lat, ST_X(point_geom) AS lng, ST_AsGeoJSON(ST_Transform(initial_table.geom, 4326)) AS main_geom"
+            + ("" if len(additional_cte_list) == 0 else ",")
         ),
         select_statements_cte=sql.SQL(" ,").join(
             [
@@ -315,9 +318,26 @@ def build_query(
         join_staments=sql.SQL(" ").join(
             [
                 sql.SQL(
-                    "JOIN {cte_id} ON ST_DWithin(initial_table.geom, {cte_id}.geom, {buffer})"
-                ).format(cte_id=cte_id, buffer=sql.Literal(buffer))
-                for cte_id, cte_sql in additional_cte_list
+                    "JOIN {cte_id} ON ST_DWithin(initial_table.geom, {cte_id}.geom, {buffer}) AND {self_join_exclusion_clause}"
+                ).format(
+                    cte_id=cte_id,
+                    buffer=sql.Literal(buffer),
+                    self_join_exclusion_clause=sql.SQL(" AND ").join(
+                        [
+                            sql.SQL("{cte_id}.osm_id != initial_table.osm_id").format(
+                                cte_id=cte_id
+                            )
+                        ]
+                        + [
+                            sql.SQL("{cte_id}.osm_id != {cte_id2}.osm_id").format(
+                                cte_id=cte_id, cte_id2=cte_id2
+                            )
+                            for cte_id2, _ in additional_cte_list[0:index]
+                            if cte_id2 != cte_id
+                        ]
+                    ),
+                )
+                for index, [cte_id, cte_sql] in enumerate(additional_cte_list)
             ]
         ),
         pagination=sql.SQL(
