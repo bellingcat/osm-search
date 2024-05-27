@@ -16,7 +16,7 @@
           </v-tabs-window-item>
 
           <v-tabs-window-item value="results">
-            <SearchResults />
+            <SearchResults @return="tab = 'search'" />
           </v-tabs-window-item>
         </v-tabs-window>
       </v-col>

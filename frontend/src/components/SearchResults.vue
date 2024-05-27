@@ -1,52 +1,53 @@
 <template>
-    <v-card variant="flat" class="mt-4" :color="color">
-      <v-card-title> Results </v-card-title>
-      <v-card-subtitle>
-        {{ store.searchResults.length + (hasMore ? " (more available)" : "")
-        }}<br />
-        Load time {{ (store.responseTime / 1000).toFixed(2) }} seconds
-      </v-card-subtitle>
-      <v-card-actions>
-        <v-row class="justify-start mx-2">
-          <v-btn text @click="csv" variant="outlined" rounded >Export as CSV</v-btn>
-          <v-btn text @click="kml" variant="outlined" rounded >Export as KML</v-btn>
-        </v-row>
-      </v-card-actions>
-      <v-card-text>
-        <v-card variant="outlined">
-          <v-card v-if="store.loading" height="60vh">
-            <v-col style="height: 100%">
-              <v-row class="justify-center align-center" style="height: 100%">
-                <v-progress-circular
-                  indeterminate
-                  color="primary"
-                  size="100"
-                  class="mx-auto"
-                ></v-progress-circular>
-              </v-row>
-            </v-col>
-          </v-card>
-          <v-virtual-scroll
-            :items="store.searchResults || []"
-            height="60vh"
-            v-else
-            key-field="index"
-            class="scroller"
-          >
-            <template v-slot:default="{ item }">
-              <SearchResult :result="item" />
-            </template>
-          </v-virtual-scroll>
+  <v-card variant="flat" class="mt-4" :color="color">
+    <v-card-title> Results </v-card-title>
+    <v-card-subtitle>
+      {{ store.searchResults.length + (hasMore ? " (more available)" : "")
+      }}<br />
+      Load time {{ (store.responseTime / 1000).toFixed(2) }} seconds
+    </v-card-subtitle>
+    <v-card-actions>
+      <v-row class="justify-start mx-2">
+        <v-btn text @click="csv" variant="outlined" rounded>Export as CSV</v-btn>
+        <v-btn text @click="kml" variant="outlined" rounded>Export as KML</v-btn>
+      </v-row>
+    </v-card-actions>
+    <v-card-text>
+      <v-card variant="outlined">
+        <v-card v-if="store.loading" height="60vh">
+          <v-col style="height: 100%">
+            <v-row class="justify-center align-center" style="height: 100%">
+              <v-progress-circular indeterminate color="primary" size="100" class="mx-auto"></v-progress-circular>
+            </v-row>
+          </v-col>
         </v-card>
-      </v-card-text>
-      <v-card-actions v-if="hasMore">
-        <v-row class="justify-center">
-          <v-btn @click="next" prepend-icon="mdi-dots-horizontal" stacked>
-            Load more
-          </v-btn>
-        </v-row>
-      </v-card-actions>
-    </v-card>
+        <v-card v-else-if="store.searchResults.length === 0" height="60vh">
+          <v-col style="height: 100%">
+            <v-row class="justify-center align-center text-center" style="height: 100%">
+              <v-col>
+                <div>
+                  No results to show.
+                </div>
+                  <v-btn @click="returnToSearch" variant="text" color="primary">Return to search</v-btn>
+              </v-col>
+            </v-row>
+          </v-col>
+        </v-card>
+        <v-virtual-scroll :items="store.searchResults || []" height="60vh" v-else key-field="index" class="scroller">
+          <template v-slot:default="{ item }">
+            <SearchResult :result="item" />
+          </template>
+        </v-virtual-scroll>
+      </v-card>
+    </v-card-text>
+    <v-card-actions v-if="hasMore">
+      <v-row class="justify-center">
+        <v-btn @click="next" prepend-icon="mdi-dots-horizontal" stacked>
+          Load more
+        </v-btn>
+      </v-row>
+    </v-card-actions>
+  </v-card>
 </template>
 
 <script setup lang="ts">
@@ -56,6 +57,8 @@ import { mkConfig, generateCsv, download } from "export-to-csv";
 import { useAppStore } from "@/stores/app";
 import { computed } from "vue";
 import { useTheme } from "vuetify";
+
+const emits = defineEmits(["return"]);
 
 const store = useAppStore();
 const csvConfig = mkConfig({
@@ -110,6 +113,10 @@ function csv() {
   const csvExporter = generateCsv(csvConfig);
 
   download(csvConfig)(csvExporter(data));
+}
+
+function returnToSearch() {
+  emits("return");
 }
 </script>
 
