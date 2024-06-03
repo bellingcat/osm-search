@@ -2,10 +2,10 @@
 node_modules
 frontend/dist
 
-
 # local env files
 .env.local
 .env.*.local
+*/.env
 .env
 
 # Log files
@@ -90,5 +90,6 @@ node_modules/
 # Yarn Integrity file
 .yarn-integrity
 
-# dotenv environment variables file
-.env
+# Python cache
+__pycache__
+.mypy_cache

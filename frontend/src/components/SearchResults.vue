@@ -1,120 +1,146 @@
 <template>
-  <v-container>
-    <v-card :loading="$store.state.loading">
-      <v-card-title>
-        {{
-          $store.state.searchResults.length == 100
-            ? "100 results of many"
-            : $store.state.searchResults.length + " total results"
-        }}
-        <span class="timing">{{
-          "in " + ($store.state.responseTime / 1000).toFixed(2) + " seconds"
-        }}</span>
-      </v-card-title>
-      <v-card-text>
-        <v-radio-group v-model="mode" row>
-          <v-radio label="OSM" value="osm" />
-          <v-radio label="Google" value="google" />
-          <v-radio label="Terrain" value="terrain" />
-          <v-radio label="Satellite" value="satellite" />
-        </v-radio-group>
-        <div class="results">
-          <v-row>
-            <SearchResult
-              v-for="(result, i) in $store.state.searchResults"
-              :key="'result' + i"
-              :result="result"
-              :resultIndex="i"
-              :index="i"
-            />
-          </v-row>
-        </div>
-      </v-card-text>
-      <v-card-actions>
-        <v-btn text @click="csv">Export as CSV</v-btn>
-        <v-btn text @click="kml">Export as KML</v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-container>
+  <v-card variant="flat" class="mt-4" :color="color">
+    <v-card-title> Results </v-card-title>
+    <v-card-subtitle>
+      {{ store.searchResults.length + (hasMore ? " (more available)" : "")
+      }}<br />
+      Load time {{ (store.responseTime / 1000).toFixed(2) }} seconds
+    </v-card-subtitle>
+    <v-card-actions>
+      <v-row class="justify-start mx-2">
+        <v-btn text @click="csv" variant="outlined" rounded
+          >Export as CSV</v-btn
+        >
+        <v-btn text @click="kml" variant="outlined" rounded
+          >Export as KML</v-btn
+        >
+      </v-row>
+    </v-card-actions>
+    <v-card-text>
+      <v-card variant="outlined">
+        <v-card v-if="store.loading" height="60vh">
+          <v-col style="height: 100%">
+            <v-row class="justify-center align-center" style="height: 100%">
+              <v-progress-circular
+                indeterminate
+                color="primary"
+                size="100"
+                class="mx-auto"
+              ></v-progress-circular>
+            </v-row>
+          </v-col>
+        </v-card>
+        <v-card v-else-if="store.searchResults.length === 0" height="60vh">
+          <v-col style="height: 100%">
+            <v-row
+              class="justify-center align-center text-center"
+              style="height: 100%"
+            >
+              <v-col>
+                <div>No results to show.</div>
+                <v-btn @click="returnToSearch" variant="text" color="primary"
+                  >Return to search</v-btn
+                >
+              </v-col>
+            </v-row>
+          </v-col>
+        </v-card>
+        <v-virtual-scroll
+          :items="store.searchResults || []"
+          height="60vh"
+          v-else
+          key-field="index"
+          class="scroller"
+        >
+          <template v-slot:default="{ item }">
+            <SearchResult :result="item" />
+          </template>
+        </v-virtual-scroll>
+      </v-card>
+    </v-card-text>
+    <v-card-actions v-if="hasMore">
+      <v-row class="justify-center">
+        <v-btn @click="next" prepend-icon="mdi-dots-horizontal" stacked>
+          Load more
+        </v-btn>
+      </v-row>
+    </v-card-actions>
+  </v-card>
 </template>
 
-<script>
-import SearchResult from "./SearchResult.vue";
+<script setup lang="ts">
 import tokml from "tokml";
 import { saveAs } from "file-saver";
-import { ExportToCsv } from "export-to-csv";
+import { mkConfig, generateCsv, download } from "export-to-csv";
+import { useAppStore } from "@/stores/app";
+import { computed } from "vue";
+import { useTheme } from "vuetify";
 
-export default {
-  name: "SearchResults",
-  components: {
-    SearchResult,
-  },
-  computed: {
-    mode: {
-      get() {
-        return this.$store.state.mode;
-      },
-      set(mode) {
-        this.$store.commit("setMode", mode);
-      },
+const emits = defineEmits(["return"]);
+
+const store = useAppStore();
+const csvConfig = mkConfig({
+  fieldSeparator: ",",
+  quoteStrings: true,
+  quoteCharacter: '"',
+  decimalSeparator: ".",
+  showTitle: false,
+  useTextFile: false,
+  useBom: true,
+  useKeysAsHeaders: true,
+  filename: "osm-search",
+});
+
+const theme = useTheme();
+const color = computed(() => {
+  return theme.global.current.value.dark ? "" : "#F5F5F5";
+});
+
+const hasMore = computed(() => {
+  return store.hasMore;
+});
+
+function next() {
+  store.nextPage();
+}
+function kml() {
+  let features = store.searchResults.map((f) => ({
+    type: "Feature",
+    properties: { name: f.name },
+    geometry: {
+      type: "Point",
+      coordinates: [f.lng, f.lat],
     },
-  },
-  methods: {
-    kml() {
-      let features = this.$store.state.searchResults.map((f) => ({
-        type: "Feature",
-        properties: { name: f.name },
-        geometry: {
-          type: "Point",
-          coordinates: [f.lng, f.lat],
-        },
-      }));
+  }));
 
-      let geojson = { type: "FeatureCollection", features };
-      let kml = tokml(geojson);
+  let geojson = { type: "FeatureCollection", features };
+  let kml = tokml(geojson);
 
-      saveAs(
-        new Blob([kml], { type: "text/plain;charset=utf-8" }),
-        "osm-search.kml"
-      );
-    },
-    csv() {
-      const options = {
-        fieldSeparator: ",",
-        quoteStrings: '"',
-        decimalSeparator: ".",
-        showLabels: true,
-        showTitle: false,
-        useTextFile: false,
-        useBom: true,
-        useKeysAsHeaders: true,
-        filename: "osm-search",
-      };
+  saveAs(
+    new Blob([kml], { type: "text/plain;charset=utf-8" }),
+    "osm-search.kml",
+  );
+}
+function csv() {
+  const data = store.searchResults.map(({ name, lat, lng }) => ({
+    name,
+    lat,
+    lng,
+  }));
 
-      const csvExporter = new ExportToCsv(options);
+  const csvExporter = generateCsv(csvConfig);
 
-      csvExporter.generateCsv(
-        this.$store.state.searchResults.map((f) => ({
-          name: f.name,
-          lat: f.lat,
-          lng: f.lng,
-        }))
-      );
-    },
-  },
-};
+  download(csvConfig)(csvExporter(data));
+}
+
+function returnToSearch() {
+  emits("return");
+}
 </script>
 
 <style>
-.results {
-  display: flex;
-  flex-wrap: wrap;
-}
-
-.timing {
-  font-size: 80%;
-  color: #444;
-  margin-left: 1em;
-  margin-bottom: -6px;
+.scroller {
+  height: 100%;
+  overflow-y: auto;
 }
 </style>

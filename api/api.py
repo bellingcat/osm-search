@@ -1,19 +1,18 @@
-from psycopg2 import sql
-import psycopg2
-from psycopg2.extras import RealDictCursor
-from flask import Flask, request, jsonify, abort, Response
-from flask_cors import CORS
 import json
-from functools import wraps
-import os
-from loguru import logger
-from datetime import datetime
 import math
-import firebase_admin
-from firebase_admin import credentials
-from firebase_admin import auth
-from firebase_admin import firestore
+import os
 import time
+from datetime import datetime
+from functools import wraps
+
+import firebase_admin
+import psycopg2
+from firebase_admin import auth, credentials, firestore
+from flask import Flask, Response, abort, jsonify, request
+from flask_cors import CORS
+from loguru import logger
+from psycopg2 import sql
+from psycopg2.extras import RealDictCursor
 
 cred = credentials.Certificate("service_account.json")
 firebase_app = firebase_admin.initialize_app(cred)
@@ -77,9 +76,10 @@ def query_with_timing(query, conn=None):
     t2 = datetime.now()
 
     for d in data:
-        d.pop('point_geom')
+        d.pop("point_geom")
 
     return (data, t2 - t1)
+
 
 def get_user(request):
     token = None
