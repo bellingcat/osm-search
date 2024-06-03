@@ -96,3 +96,6 @@ node_modules/
 # Python cache
 __pycache__
 .mypy_cache
+
+# Python version
+*/.python-version
