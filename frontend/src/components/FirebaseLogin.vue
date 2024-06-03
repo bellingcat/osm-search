@@ -8,7 +8,7 @@ import * as firebaseui from "firebaseui";
 // Default styles import from gstatic which may be legally problematic in EU
 import "@/styles/firebaseui.override.css";
 import "firebase/compat/auth";
-import { firebaseConfig } from "@/services/firebase";
+import { firebaseConfig } from "@/services/firebase.service";
 import { useAppStore } from "@/stores/app";
 import { onMounted } from "vue";
 
