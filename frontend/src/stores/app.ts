@@ -2,7 +2,7 @@
 import { defineStore } from "pinia";
 import firebase from "firebase/compat/app";
 import "firebase/compat/auth";
-import { firebaseFirestore } from "../services/firebase";
+import { firebaseFirestore } from "../services/firebase.service";
 import {
   collection,
   addDoc,

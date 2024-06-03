@@ -2,11 +2,11 @@
 node_modules
 frontend/dist
 
-
 # local env files
 .env.local
 .env.*.local
 */.env
+.env
 
 # Log files
 npm-debug.log*
@@ -89,9 +89,6 @@ node_modules/
 
 # Yarn Integrity file
 .yarn-integrity
-
-# dotenv environment variables file
-.env
 
 # Python cache
 __pycache__
