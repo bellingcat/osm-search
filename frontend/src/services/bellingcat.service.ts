@@ -53,9 +53,20 @@ class BellingCatService {
           }
           return d.json();
         })
-        .then(({ data, has_more }) => {
+        .then((apiResponse) => {
           const time2 = performance.now();
           const responseTime = time2 - time1;
+
+          let data: any[] = [];
+          let has_more = false;
+
+          if (apiResponse.data && apiResponse.hasMore) {
+            data = apiResponse.data;
+            has_more = apiResponse.has_more;
+          } else {
+            data = apiResponse;
+          }
+
           const response = {
             responseTime,
             data: data.map((item, index) => ({
