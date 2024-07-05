@@ -268,6 +268,27 @@ export default [
     ],
   },
   {
+    name: "Bike path",
+    type: "line",
+    method: "OR",
+    filters: [
+      {
+        parameter: "highway",
+        comparison: "=",
+        value: "cycleway",
+      },
+      {
+        parameter: "bicycle",
+        comparison: "=",
+        value: "designated",
+      },
+      {
+        parameter: "cycleway",
+        comparison: "is not null",
+      },
+    ],
+  },
+  {
     name: "Cliff",
     type: "line",
     method: "OR",
@@ -546,6 +567,18 @@ export default [
         parameter: "shop",
         comparison: "=",
         value: "convenience",
+      },
+    ],
+  },
+  {
+    name: "Pharmacy",
+    type: "any",
+    method: "OR",
+    filters: [
+      {
+        parameter: "amenity",
+        comparison: "=",
+        value: "pharmacy",
       },
     ],
   },
