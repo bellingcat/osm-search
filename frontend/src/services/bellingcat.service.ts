@@ -1,6 +1,7 @@
 const PAGE_SIZE = 100;
 const OSM_SEARCH_API = "http://localhost:5050"; //"https://api.osm-search.bellingcat.com";
 
+
 class BellingCatService {
   token: string | null;
   lastRequest: string | null;
@@ -69,7 +70,6 @@ class BellingCatService {
               this.search({ bbox, range, filters, page: page + 1 });
             }, 1000);
           }
-
           resolve(response);
         })
         .catch((e) => {

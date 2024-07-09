@@ -37,8 +37,8 @@
           @update:bounds="updateBbox"
         >
           <l-tile-layer :url="url" />
-          <map-marker
-            v-for="result in store.searchResults"
+          <main-map-marker
+            v-for="result in searchResults"
             :key="'marker' + result.index"
             :result="result"
           />
@@ -115,6 +115,10 @@ const zoom = computed({
   set(val) {
     store.setZoom(val);
   },
+});
+
+const searchResults = computed(() => {
+  return store.searchResults;
 });
 
 const url = computed(() => {
