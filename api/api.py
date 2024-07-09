@@ -25,7 +25,7 @@ from pydantic import ValidationError
 cred = credentials.Certificate("service_account.json")
 firebase_app = firebase_admin.initialize_app(cred)
 db = firestore.client()
-
+#
 # Flask initialization
 app = Flask(__name__)
 app.config["TEMPLATES_AUTO_RELOAD"] = True
@@ -71,7 +71,7 @@ def token_required(f):
     return decorated
 
 
-def get_user(request: Request):
+def get_user(request: Request) -> dict | None:
     token = None
 
     if "Authorization" in request.headers:
@@ -295,9 +295,9 @@ def build_query(
                 for cte_id, cte_sql in additional_cte_list
             ]
         ),
-        pagination=sql.SQL("LIMIT {limit} OFFSET {offset}").format(
-            limit=sql.Literal(limit), offset=sql.Literal(offset)
-        ),
+        pagination=sql.SQL(
+            "ORDER BY point_geom, name, lat, lng LIMIT {limit} OFFSET {offset}"
+        ).format(limit=sql.Literal(limit + 1), offset=sql.Literal(offset)),
     )
 
     return query
@@ -314,6 +314,8 @@ def get_intersection() -> tuple[Response, int] | Response:
             b=request.args.get("b"),
             r=request.args.get("r"),
             t=request.args.get("t"),
+            limit=request.args.get("limit"),
+            page=request.args.get("page"),
         )
     except ValidationError as e:
         return jsonify({"error": "Invalid data", "details": e.errors()}), 400
@@ -322,6 +324,8 @@ def get_intersection() -> tuple[Response, int] | Response:
     filters: list[Filter] = params.filters
 
     bbox: Bbox = Bbox(params.l, params.b, params.r, params.t)
+    limit = min(params.limit, 100)
+    offset = params.page * limit
 
     area: float = (
         math.pow(6371, 2)
@@ -335,7 +339,7 @@ def get_intersection() -> tuple[Response, int] | Response:
     if area > 4e6:
         return Response(status=400)
 
-    query = build_query(filters, bbox, buffer, params.limit, params.offset)
+    query = build_query(filters, bbox, buffer, limit, offset)
     conn: psycopg.Connection = get_db_connection()
 
     query_string: str = query.as_string(conn)
@@ -350,7 +354,13 @@ def get_intersection() -> tuple[Response, int] | Response:
 
     logger.info(f"Found {len(data)} results in {tdiff} seconds")
 
-    return jsonify(data)
+    if len(data) == 0:
+        return jsonify({"message": "No results found", "data": []})
+
+    # We fetch one extra result to determine if there are more results
+    has_more = len(data) > limit
+
+    return jsonify({"data": data[0 : min(len(data), limit)], "has_more": has_more})
 
 
 @app.route("/robots.txt")
