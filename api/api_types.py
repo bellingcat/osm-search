@@ -41,7 +41,7 @@ class RequestParams(BaseModel):
     b: float
     r: float
     t: float
-    limit: int = 100
+    limit: int = 500
     page: int = 0
 
 

@@ -391,7 +391,7 @@ def get_intersection() -> tuple[Response, int] | Response:
     filters: list[Filter] = params.filters
 
     bbox: Bbox = Bbox(params.l, params.b, params.r, params.t)
-    limit = min(params.limit, 5)
+    limit = min(params.limit, 500)
     offset = params.page * limit
 
     area: float = (
