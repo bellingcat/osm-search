@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass
-from typing import Literal, TypedDict
+from typing import Any, Literal, TypedDict
 
 from pydantic import BaseModel, Field, Json
 from typing_extensions import NotRequired
@@ -77,8 +77,26 @@ class Timeout(Exception):
     pass
 
 
-class RetrievedData(TypedDict):
+class RetrievedDataRaw(TypedDict):
     name: str
     lat: float
     lng: float
     point_geom: NotRequired[str]
+    main_geom: Any
+    # The following fields are optional and may continue along the same pattern. But TypedDict does not support dynamic types.
+    subquery0_geoms: NotRequired[Any]
+    subquery1_geoms: NotRequired[Any]
+    subquery2_geoms: NotRequired[Any]
+    subquery3_geoms: NotRequired[Any]
+
+
+class GeoJSON(TypedDict):
+    type: str
+    coordinates: list[list[float]] | list[list[list[float]]]
+
+
+class RetrievedData(TypedDict):
+    name: str
+    lat: float
+    lng: float
+    geometry: list[GeoJSON]
