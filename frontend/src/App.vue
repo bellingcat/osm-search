@@ -14,7 +14,6 @@
         >Sign Out</v-btn
       >
     </v-app-bar>
-    <FirebaseLogin v-if="!user" />
     <router-view></router-view>
     <v-footer class="legal">
       <router-link to="/privacy">Privacy Policy</router-link>
@@ -24,13 +23,11 @@
 </template>
 
 <script>
-import FirebaseLogin from "./components/FirebaseLogin.vue";
-
 export default {
   name: "App",
-  components: {
-    FirebaseLogin,
-  },
+  // components: {
+  //   FirebaseLogin,
+  // },
   mounted() {
     this.$store.dispatch("getKeys");
   },

@@ -18,7 +18,10 @@
 
       <p>
         For more information, and a guide to creating searching custom features,
-        read the associated article (coming soon.)
+        <a
+          href="https://www.bellingcat.com/resources/how-tos/2023/05/08/finding-geolocation-leads-with-bellingcats-openstreetmap-search-tool/"
+          >read the associated article</a
+        >.
       </p>
 
       <p>
