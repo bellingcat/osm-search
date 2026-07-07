@@ -66,7 +66,7 @@
         <div class="map-search">
           <v-text-field
             variant="outlined"
-            label="Find location"
+            label="Find location or lat, lng"
             prepend-inner-icon="mdi-magnify"
             @keypress.enter="searchLocation"
             v-model="locationSearch"

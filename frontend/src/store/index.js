@@ -211,8 +211,26 @@ export default new Vuex.Store({
     },
 
     searchLocation({ commit }, search_text) {
+      // If the input is a "lat, lng" coordinate pair (e.g. copied from Google
+      // Maps), navigate to it directly. Passing coordinates to the Mapbox
+      // geocoder is unreliable because it expects lng,lat order, so a pasted
+      // lat,lng pair gets silently swapped (see #2).
+      const coordinateMatch = search_text
+        .trim()
+        .match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
+      if (coordinateMatch) {
+        const lat = parseFloat(coordinateMatch[1]);
+        const lng = parseFloat(coordinateMatch[2]);
+        if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+          commit("setMapPosition", { center: [lat, lng], zoom: 14 });
+          return;
+        }
+      }
+
       fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${search_text}.json?access_token=${process.env.VUE_APP_MAPBOX_TOKEN}`
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+          search_text
+        )}.json?access_token=${process.env.VUE_APP_MAPBOX_TOKEN}`
       )
         .then((d) => {
           if (d.status != 200) {
